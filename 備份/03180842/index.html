@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>漢字書寫練習</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/hanzi-writer@3.5/dist/hanzi-writer.min.js"></script>
+</head>
+<body>
+
+    <div class="app-container">
+        <header class="app-header">
+            <input type="text" id="char-input" placeholder="請輸入生字，例如：學習勤奮">
+            <button id="start-btn">開始練習</button>
+        </header>
+
+        <main class="main-content">
+            <aside class="char-list-container">
+                <h3>生字清單</h3>
+                <ul id="char-list"></ul>
+            </aside>
+
+            <section class="writer-section">
+                <div id="writer-target" class="writer-target">
+                    <div id="completion-feedback" class="completion-feedback">✓</div>
+                    <!-- 漢字書寫畫布將會顯示在這裡 -->
+                </div>
+                <div class="writer-controls">
+                    <button id="erase-btn" class="stage-btn">清除</button>
+                    <div class="slider-container">
+                        <label for="stroke-width-slider">粗細</label>
+                        <input type="range" id="stroke-width-slider" min="5" max="30" value="10">
+                    </div>
+                    <button id="stage-1-btn" class="stage-btn active">提示</button>
+                    <button id="stage-3-btn" class="stage-btn">挑戰</button>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+
+    <div id="completion-dialog" class="dialog-overlay" style="display: none;">
+        <div class="dialog-box">
+            <p>看一看，你的筆畫位置與標準字一樣嗎？</p>
+            <div class="dialog-buttons">
+                <button id="confirm-completion-btn">確認完成</button>
+                <button id="practice-again-btn">重新練習</button>
+            </div>
+        </div>
+    </div>
+
+    <audio id="completion-sound" src="https://actions.google.com/sounds/v1/alarms/dinner_bell.ogg" preload="auto"></audio>
+</body>
+</html>
