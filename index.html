@@ -6,8 +6,8 @@
 <title>太平國小國字學習系統</title>
 <script src="https://cdn.jsdelivr.net/npm/hanzi-writer@3.5/dist/hanzi-writer.min.js"></script>
 <!-- Firebase SDK -->
-<script src="https://cdn.jsdelivr.net/npm/firebase@10.12.0/firebase-app-compat.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/firebase@10.12.0/firebase-firestore-compat.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&family=Noto+Sans+TC:wght@400;500;700;900&family=Noto+Serif+TC:wght@400;700;900&display=swap');
 
@@ -1877,19 +1877,22 @@ function onVersionChange() {
   if (!versionId || !db) return;
 
   db.collection('curriculum').doc(versionId)
-    .collection('lessons').orderBy('bookNum').orderBy('lessonNum')
+    .collection('lessons').orderBy('grade').orderBy('lessonNum')
     .get().then(function(snap) {
       curriculumData = {};
+      var gradeOrder = [];
       snap.forEach(function(doc) {
         var d = doc.data();
-        if (!curriculumData[d.bookNum]) curriculumData[d.bookNum] = [];
-        curriculumData[d.bookNum].push(d);
+        var g = d.grade || d.bookNum || '未知';
+        if (!curriculumData[g]) { curriculumData[g] = []; gradeOrder.push(g); }
+        curriculumData[g].push(d);
       });
-      var books = Object.keys(curriculumData).sort(function(a,b){ return a-b; });
-      books.forEach(function(bk) {
+      // 去重保持順序
+      gradeOrder = gradeOrder.filter(function(v,i,a){ return a.indexOf(v)===i; });
+      gradeOrder.forEach(function(bk) {
         var opt = document.createElement('option');
         opt.value = bk;
-        opt.textContent = '第 ' + bk + ' 冊';
+        opt.textContent = bk;
         selBook.appendChild(opt);
       });
     });
