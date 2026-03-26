@@ -2554,7 +2554,7 @@ function recordAndNext(char, mistakes, skipped) {
     charStatus[char] = 'practiced';
     examFailed.push(char); // 加入下一輪待考
   }
-  renderMenu();
+  try { renderMenu(); } catch(e) { console.warn('renderMenu error:', e); }
 
   examQIdx++;
   if (examQIdx < examQueue.length) {
@@ -2572,67 +2572,83 @@ function recordAndNext(char, mistakes, skipped) {
 
 // 顯示輪次結算
 function showRoundSummary() {
-  sfxPass();
-  document.getElementById('exam-question-panel').style.display = 'none';
-  document.getElementById('exam-result-panel').style.display   = 'none';
-  document.getElementById('exam-round-panel').style.display    = '';
-  document.getElementById('exam-body').scrollTo({top:0, behavior:'smooth'});
+  try {
+    sfxPass();
 
-  // 標題
-  document.getElementById('round-icon').textContent  = '📊';
-  document.getElementById('round-title').textContent = '第 ' + examRound + ' 輪結算';
+    // 安全取得各 panel，若找不到則跳至最終結果
+    var qPanel = document.getElementById('exam-question-panel');
+    var rPanel = document.getElementById('exam-result-panel');
+    var sPanel = document.getElementById('exam-round-panel');
+    if (!sPanel) { showExamFinalResult(); return; }
 
-  // 統計本輪
-  var roundQueue = examQueue; // 本輪出題的字
-  var passedNow  = roundQueue.filter(function(c){
-    var r = examResults[c];
-    return r && r.passed && r.round === examRound;
-  });
-  var failedNow  = examFailed.slice(); // 本輪答錯的
+    if (qPanel) qPanel.style.display = 'none';
+    if (rPanel) rPanel.style.display = 'none';
+    sPanel.style.display = '';
 
-  document.getElementById('round-sub').textContent =
-    '答對 ' + passedNow.length + ' 個，還有 ' + failedNow.length + ' 個要再加油！';
+    var body = document.getElementById('exam-body');
+    if (body) body.scrollTo({top:0, behavior:'smooth'});
 
-  // 答對區
-  var passSection = document.getElementById('round-pass-section');
-  var passGrid    = document.getElementById('round-pass-grid');
-  if (passedNow.length > 0) {
-    passSection.style.display = '';
-    passGrid.innerHTML = passedNow.map(function(c) {
+    document.getElementById('round-icon').textContent  = '📊';
+    document.getElementById('round-title').textContent = '第 ' + examRound + ' 輪結算';
+
+    // 本輪答對的字（examResults 裡 round === examRound 且 passed）
+    var passedNow = examQueue.filter(function(c){
       var r = examResults[c];
-      var mark = r.mistakes === 0 ? '⭕' : '⭕';
-      var lbl  = r.mistakes === 0 ? '完美' : '通過';
-      var cls  = r.mistakes === 0 ? 'pass' : 'ok';
-      var lblCls = r.mistakes === 0 ? 'label-pass' : 'label-ok';
-      return '<div class="exam-score-item ' + cls + '">'
-        + '<div class="exam-score-glyph">' + c + '</div>'
-        + '<div style="font-size:1.6rem">' + mark + '</div>'
-        + '<div class="exam-score-label ' + lblCls + '">' + lbl + '</div>'
-        + '</div>';
-    }).join('');
-  } else {
-    passSection.style.display = 'none';
-  }
+      return r && r.passed && r.round === examRound;
+    });
 
-  // 答錯區
-  var failSection = document.getElementById('round-fail-section');
-  var failGrid    = document.getElementById('round-fail-grid');
-  if (failedNow.length > 0) {
-    failSection.style.display = '';
-    failGrid.innerHTML = failedNow.map(function(c) {
-      return '<div class="exam-score-item fail">'
-        + '<div class="exam-score-glyph">' + c + '</div>'
-        + '<div style="font-size:1.6rem">✖</div>'
-        + '<div class="exam-score-label label-fail">再加油</div>'
-        + '</div>';
-    }).join('');
-  } else {
-    failSection.style.display = 'none';
-  }
+    // 本輪答錯的字（examFailed 目前累積值）
+    var failedNow = examFailed.slice();
 
-  // 下一輪按鈕
-  var nextRound = examRound + 1;
-  document.getElementById('btn-next-round-label').textContent = '開始第 ' + nextRound + ' 輪';
+    document.getElementById('round-sub').textContent =
+      '答對 ' + passedNow.length + ' 個，還有 ' + failedNow.length + ' 個要再加油！';
+
+    // ── 答對區 ──
+    var passSection = document.getElementById('round-pass-section');
+    var passGrid    = document.getElementById('round-pass-grid');
+    if (passSection && passGrid) {
+      if (passedNow.length > 0) {
+        passSection.style.display = '';
+        passGrid.innerHTML = passedNow.map(function(c) {
+          var r      = examResults[c] || {};
+          var perfect = r.mistakes === 0;
+          return '<div class="exam-score-item ' + (perfect ? 'pass' : 'ok') + '">'
+            + '<div class="exam-score-glyph">' + c + '</div>'
+            + '<div style="font-size:1.4rem">⭕</div>'
+            + '<div class="exam-score-label ' + (perfect ? 'label-pass' : 'label-ok') + '">'
+            + (perfect ? '完美' : '通過') + '</div></div>';
+        }).join('');
+      } else {
+        passSection.style.display = 'none';
+      }
+    }
+
+    // ── 答錯區 ──
+    var failSection = document.getElementById('round-fail-section');
+    var failGrid    = document.getElementById('round-fail-grid');
+    if (failSection && failGrid) {
+      if (failedNow.length > 0) {
+        failSection.style.display = '';
+        failGrid.innerHTML = failedNow.map(function(c) {
+          return '<div class="exam-score-item fail">'
+            + '<div class="exam-score-glyph">' + c + '</div>'
+            + '<div style="font-size:1.4rem">✖</div>'
+            + '<div class="exam-score-label label-fail">再加油</div></div>';
+        }).join('');
+      } else {
+        failSection.style.display = 'none';
+      }
+    }
+
+    // ── 下一輪按鈕 ──
+    var lbl = document.getElementById('btn-next-round-label');
+    if (lbl) lbl.textContent = '開始第 ' + (examRound + 1) + ' 輪';
+
+  } catch(e) {
+    console.error('showRoundSummary error:', e);
+    // 當機保護：直接跳到最終結果
+    showExamFinalResult();
+  }
 }
 
 // 從結算畫面進入下一輪
