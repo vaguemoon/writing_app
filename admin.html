@@ -513,28 +513,47 @@ var firebaseConfig = {
 
 var db = null;
 
+var fbInitTries = 0;
 function initFirebase() {
+  fbInitTries++;
+  // 超過 20 次（3秒）還沒好，顯示錯誤
+  if (fbInitTries > 20) {
+    showFirebaseError('Firebase SDK 載入失敗，請檢查網路連線後重新整理頁面。');
+    return;
+  }
   if (typeof firebase === 'undefined' || typeof firebase.firestore === 'undefined') {
     setTimeout(initFirebase, 150); return;
   }
   try {
     if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
     db = firebase.firestore();
-    // Firebase 就緒後才載入資料
     onFirebaseReady();
   } catch(e) {
-    console.warn('Firebase init error, retrying...', e);
-    setTimeout(initFirebase, 300);
+    console.warn('Firebase init error:', e);
+    showFirebaseError('Firebase 初始化錯誤：' + e.message);
   }
 }
 
 function onFirebaseReady() {
+  // 隱藏錯誤訊息（若有）
+  var errBar = document.getElementById('fb-error-bar');
+  if (errBar) errBar.style.display = 'none';
   loadStudents();
   loadCurrentLesson();
 }
 
+function showFirebaseError(msg) {
+  var wrap = document.getElementById('student-list-wrap');
+  if (wrap) {
+    wrap.innerHTML = '<div style="padding:20px;background:#fff5f5;border-radius:10px;color:#dc2626;font-weight:700;font-size:.9rem;line-height:1.8">'
+      + '❌ 資料庫連線失敗<br>'
+      + '<span style="font-weight:600;color:#6b7280">'+msg+'</span><br><br>'
+      + '<button onclick="location.reload()" style="padding:8px 18px;border:none;border-radius:8px;background:#2563eb;color:white;font-weight:700;cursor:pointer;font-size:.88rem">🔄 重新整理</button>'
+      + '</div>';
+  }
+}
+
 window.addEventListener('load', initFirebase);
-document.addEventListener('DOMContentLoaded', initFirebase);
 
 // ══ 登入 ══
 
@@ -557,41 +576,61 @@ function switchTab(tab) {
 
 // ══ 載入學生列表 ══
 function loadStudents() {
-  if (!db) { setTimeout(loadStudents, 500); return; }
   var wrap = document.getElementById('student-list-wrap');
+  if (!db) {
+    wrap.innerHTML = '<div class="loading-wrap"><div class="spinner"></div><br>連線中…</div>';
+    setTimeout(loadStudents, 600); return;
+  }
   wrap.innerHTML = '<div class="loading-wrap"><div class="spinner"></div><br>載入中…</div>';
 
   db.collection('students').get().then(function(snap) {
-    var students = [];
-    var promises = [];
-
+    // 先收集所有學生基本資料
+    var studentDocs = [];
     snap.forEach(function(doc) {
-      var data = doc.data();
-      var p = db.collection('students').doc(doc.id)
+      studentDocs.push({ id: doc.id, data: doc.data() });
+    });
+
+    if (!studentDocs.length) {
+      renderStudentList([]);
+      return;
+    }
+
+    // 逐一讀取 progress，用 .catch 確保單一失敗不影響全體
+    var students = [];
+    var done = 0;
+
+    studentDocs.forEach(function(s) {
+      db.collection('students').doc(s.id)
         .collection('progress').doc('hanzi').get()
         .then(function(pd) {
           students.push({
-            id:        doc.id,
-            name:      data.name || doc.id,
-            createdAt: data.createdAt,
-            lastSeen:  pd.exists ? pd.data().lastSeen : null,
-            charStatus:pd.exists ? (pd.data().charStatus||{}) : {}
+            id:        s.id,
+            name:      s.data.name || s.id,
+            lastSeen:  pd.exists && pd.data().lastSeen ? pd.data().lastSeen : null,
+            charStatus:pd.exists ? (pd.data().charStatus || {}) : {}
           });
+        })
+        .catch(function() {
+          students.push({
+            id: s.id, name: s.data.name || s.id,
+            lastSeen: null, charStatus: {}
+          });
+        })
+        .then(function() {
+          done++;
+          if (done === studentDocs.length) {
+            students.sort(function(a,b){
+              var at = a.lastSeen ? a.lastSeen.seconds : 0;
+              var bt = b.lastSeen ? b.lastSeen.seconds : 0;
+              return bt - at;
+            });
+            renderStudentList(students);
+          }
         });
-      promises.push(p);
-    });
-
-    return Promise.all(promises).then(function() {
-      // 依最後登入時間排序
-      students.sort(function(a,b){
-        var at = a.lastSeen ? a.lastSeen.seconds : 0;
-        var bt = b.lastSeen ? b.lastSeen.seconds : 0;
-        return bt - at;
-      });
-      renderStudentList(students);
     });
   }).catch(function(e) {
-    wrap.innerHTML = '<div class="loading-wrap" style="color:var(--red)">載入失敗，請重新整理。</div>';
+    wrap.innerHTML = '<div class="loading-wrap" style="color:var(--red)">載入失敗：'
+      + e.message + '<br><br><button onclick="loadStudents()" style="padding:6px 14px;border:1px solid #ccc;border-radius:6px;cursor:pointer;font-size:.85rem">重試</button></div>';
   });
 }
 
