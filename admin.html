@@ -520,15 +520,20 @@ function initFirebase() {
   try {
     if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
     db = firebase.firestore();
-  } catch(e) { setTimeout(initFirebase, 300); }
+    // Firebase 就緒後才載入資料
+    onFirebaseReady();
+  } catch(e) {
+    console.warn('Firebase init error, retrying...', e);
+    setTimeout(initFirebase, 300);
+  }
 }
-window.addEventListener('load', function() {
-  initFirebase();
-  setTimeout(function() {
-    loadStudents();
-    loadCurrentLesson();
-  }, 600);
-});
+
+function onFirebaseReady() {
+  loadStudents();
+  loadCurrentLesson();
+}
+
+window.addEventListener('load', initFirebase);
 document.addEventListener('DOMContentLoaded', initFirebase);
 
 // ══ 登入 ══
