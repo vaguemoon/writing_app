@@ -535,11 +535,28 @@ function initFirebase() {
 }
 
 function onFirebaseReady() {
-  // 隱藏錯誤訊息（若有）
   var errBar = document.getElementById('fb-error-bar');
   if (errBar) errBar.style.display = 'none';
-  loadStudents();
-  loadCurrentLesson();
+
+  // 先顯示診斷訊息
+  var wrap = document.getElementById('student-list-wrap');
+  if (wrap) wrap.innerHTML = '<div class="loading-wrap">✅ Firebase 連線成功，讀取資料中…</div>';
+
+  // 測試能否讀取 Firestore
+  db.collection('students').limit(1).get()
+    .then(function() {
+      loadStudents();
+      loadCurrentLesson();
+    })
+    .catch(function(e) {
+      if (wrap) wrap.innerHTML = '<div class="loading-wrap" style="color:var(--red);font-size:.85rem;line-height:1.8">'
+        + '❌ Firestore 讀取失敗<br>'
+        + '錯誤：' + e.message + '<br>'
+        + '代碼：' + e.code + '<br><br>'
+        + '請確認 Firestore 安全規則已允許讀取，然後<br>'
+        + '<button onclick="location.reload()" style="margin-top:8px;padding:8px 16px;border:none;border-radius:8px;background:var(--blue);color:white;font-weight:700;cursor:pointer">🔄 重新整理</button>'
+        + '</div>';
+    });
 }
 
 function showFirebaseError(msg) {
