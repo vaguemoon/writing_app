@@ -1,63 +1,1273 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>漢字書寫練習</title>
-    <link rel="stylesheet" href="style.css">
-    <script src="https://cdn.jsdelivr.net/npm/hanzi-writer@3.5/dist/hanzi-writer.min.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>太平國小國字學習系統</title>
+<script src="https://cdn.jsdelivr.net/npm/hanzi-writer@3.5/dist/hanzi-writer.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&family=Noto+Sans+TC:wght@400;500;700;900&family=Noto+Serif+TC:wght@400;700;900&display=swap');
+
+:root {
+  --blue:     #4a90d9;
+  --blue-dk:  #2d6fa8;
+  --blue-lt:  #e8f4fd;
+  --green:    #52c97a;
+  --green-dk: #389959;
+  --orange:   #ff8c42;
+  --red:      #e84444;
+  --purple:   #9b7fe8;
+  --yellow:   #ffd54f;
+  --bg:       #eef5fc;
+  --text:     #1e2d3d;
+  --muted:    #7a99b5;
+  --white:    #ffffff;
+  --radius:   22px;
+  --shadow:   0 6px 28px rgba(44,100,160,.13);
+  --shadow-lg:0 12px 48px rgba(44,100,160,.2);
+
+  /* 響應式格子大小
+     直式平板：取「畫面寬/2 - padding」與「可視高度 - UI」的較小值
+     橫式平板：有更多寬度可用 */
+  --grid: min(
+    calc((100vw - 80px) / 2),
+    calc(100vh - 320px),
+    420px
+  );
+}
+
+/* 在小螢幕（手機）上，格子改為整排顯示 */
+@media (max-width: 600px) {
+  :root {
+    --grid: min(calc(100vw - 48px), calc(100vh - 380px), 340px);
+  }
+}
+
+* { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+
+body {
+  font-family:'Nunito','Noto Sans TC',sans-serif;
+  background:var(--bg); color:var(--text);
+  height:100vh; overflow:hidden;
+}
+
+/* ══ 畫面切換 ══ */
+.app { position:relative; width:100vw; height:100vh; overflow:hidden; }
+.screen {
+  position:absolute; inset:0;
+  overflow-y:auto;
+  transition:transform .38s cubic-bezier(.77,0,.175,1), opacity .38s ease;
+  will-change:transform,opacity;
+}
+.screen.active { transform:translateX(0);    opacity:1;  pointer-events:all; }
+.screen.right  { transform:translateX(100%); opacity:.3; pointer-events:none; }
+.screen.left   { transform:translateX(-100%);opacity:.3; pointer-events:none; }
+
+/* ══ 頂部導覽列 ══ */
+.topbar {
+  background:var(--white); padding:11px 16px;
+  display:flex; align-items:center; justify-content:space-between;
+  box-shadow:0 2px 12px rgba(0,0,0,.06);
+  position:sticky; top:0; z-index:50; gap:10px;
+}
+.topbar-left { display:flex; align-items:center; gap:10px; }
+.topbar-title { font-size:.95rem; font-weight:900; color:var(--blue-dk); }
+.topbar-title span { color:var(--orange); }
+.btn-back {
+  background:var(--blue-lt); border:none; border-radius:14px;
+  padding:10px 20px; font-size:1rem; font-weight:900;
+  color:var(--blue-dk); cursor:pointer; transition:all .15s;
+  font-family:'Nunito',sans-serif;
+  box-shadow:0 2px 8px rgba(74,144,217,.18);
+}
+.btn-back:active { transform:scale(.95); }
+.star-badge {
+  display:flex; align-items:center; gap:5px;
+  background:#fff8e1; border-radius:20px; padding:5px 12px;
+  font-weight:900; font-size:.95rem; color:#d4900a; white-space:nowrap;
+}
+
+/* ══════════════════════════
+   畫面一：首頁
+══════════════════════════ */
+#screen-home {
+  background:linear-gradient(160deg,#dbeeff 0%,#eef5fc 60%);
+  display:flex; flex-direction:column;
+}
+.home-hero { padding:40px 24px 24px; text-align:center; }
+.home-school { font-size:.95rem; font-weight:700; color:var(--muted); letter-spacing:2px; margin-bottom:8px; }
+.home-title  { font-size:1.9rem; font-weight:900; color:var(--blue-dk); line-height:1.3; }
+.home-title span { color:var(--orange); }
+.home-card {
+  background:var(--white); margin:0 18px 20px;
+  border-radius:var(--radius); padding:24px 20px; box-shadow:var(--shadow-lg);
+}
+.home-card-label { font-size:.82rem; font-weight:800; color:var(--muted); letter-spacing:1px; margin-bottom:12px; }
+.char-input-row { display:flex; gap:8px; }
+.char-input {
+  flex:1; border:2.5px solid #d4e8f8; border-radius:12px;
+  padding:12px 16px; font-size:1.2rem;
+  font-family:'Noto Sans TC',sans-serif; outline:none;
+  transition:border-color .2s; color:var(--text); letter-spacing:4px;
+}
+.char-input:focus { border-color:var(--blue); }
+.btn-start {
+  background:linear-gradient(135deg,var(--blue),var(--blue-dk));
+  color:white; border:none; border-radius:12px;
+  padding:12px 20px; font-size:1rem; font-weight:900;
+  cursor:pointer; transition:all .15s; white-space:nowrap;
+  font-family:'Nunito',sans-serif; box-shadow:0 4px 14px rgba(45,111,168,.35);
+}
+.btn-start:active { transform:scale(.96); }
+.home-tip {
+  background:#f0f8ff; border-radius:12px; padding:12px 16px;
+  font-size:.84rem; color:var(--muted); font-weight:600; line-height:1.7; margin-top:12px;
+}
+
+/* ══════════════════════════
+   畫面二：生字選單
+══════════════════════════ */
+#screen-menu { background:var(--bg); }
+.menu-body {
+  padding:16px;
+  display:grid;
+  grid-template-columns:repeat(auto-fill, minmax(130px,1fr));
+  gap:14px;
+}
+.char-card {
+  background:var(--white); border-radius:var(--radius);
+  padding:20px 12px 16px;
+  box-shadow:var(--shadow);
+  display:flex; flex-direction:column; align-items:center; gap:10px;
+  cursor:pointer;
+  transition:transform .18s, box-shadow .18s;
+  border:3px solid transparent; position:relative; overflow:hidden;
+  user-select:none;
+}
+.char-card:active { transform:scale(.93); }
+.char-card:hover  { transform:translateY(-4px); box-shadow:var(--shadow-lg); }
+.char-card.mastered  { border-color:var(--green); }
+.char-card.practiced { border-color:var(--yellow); }
+.char-card-glyph  { font-size:3.6rem; font-family:'Noto Serif TC',serif; font-weight:900; color:var(--text); line-height:1; }
+.char-card-status { font-size:.72rem; font-weight:800; padding:3px 10px; border-radius:20px; }
+.status-new       { background:var(--blue-lt); color:var(--blue-dk); }
+.status-practiced { background:#fff8e1; color:#b07800; }
+.status-mastered  { background:#e8f8ee; color:var(--green-dk); }
+.char-card-check  {
+  position:absolute; top:8px; right:8px;
+  width:20px; height:20px; border-radius:50%;
+  background:var(--green); color:white;
+  font-size:.68rem; font-weight:900;
+  display:none; align-items:center; justify-content:center;
+}
+.char-card.mastered .char-card-check { display:flex; }
+
+/* 點擊音效漣漪 */
+.char-card-ripple {
+  position:absolute; border-radius:50%;
+  background:rgba(74,144,217,.25);
+  animation:ripple .5s ease-out forwards;
+  pointer-events:none;
+}
+@keyframes ripple { 0%{transform:scale(0);opacity:1} 100%{transform:scale(4);opacity:0} }
+
+/* ══════════════════════════
+   畫面三：學習頁
+══════════════════════════ */
+#screen-learn {
+  background:var(--bg);
+  display:flex; flex-direction:column;
+  height:100%;
+}
+
+.mode-banner {
+  background:var(--white); padding:9px 16px;
+  display:flex; align-items:center; gap:10px;
+  box-shadow:0 2px 8px rgba(0,0,0,.05);
+  flex-shrink:0;
+}
+.mode-icon  { font-size:1.5rem; }
+.mode-info-title { font-size:.95rem; font-weight:900; }
+.mode-info-sub   { font-size:.72rem; color:var(--muted); font-weight:600; }
+
+/* 捲動區：padding-bottom 留給底部按鈕 */
+.learn-body {
+  flex:1; overflow-y:auto;
+  padding:16px 16px 110px;
+  display:flex; flex-direction:column; align-items:center;
+}
+
+/* ══ 九宮格共用 ══ */
+.nine-grid {
+  width:var(--grid); height:var(--grid);
+  border:3px solid #c8d8ec; border-radius:18px;
+  background-color:white; flex-shrink:0;
+  background-image:
+    linear-gradient(to right,  rgba(200,216,236,.45) 1px,transparent 1px),
+    linear-gradient(to bottom, rgba(200,216,236,.45) 1px,transparent 1px),
+    linear-gradient(to right,  #c8d8ec 1px,transparent 1px),
+    linear-gradient(to bottom, #c8d8ec 1px,transparent 1px);
+  background-size:
+    calc(var(--grid)/9) calc(var(--grid)/9),
+    calc(var(--grid)/9) calc(var(--grid)/9),
+    33.333% 33.333%,
+    33.333% 33.333%;
+}
+
+/* ══ 練習模式 ══ */
+.practice-wrap {
+  display:flex; align-items:flex-start; justify-content:center;
+  gap:20px; flex-wrap:wrap; width:100%;
+}
+.practice-col { display:flex; flex-direction:column; align-items:center; gap:8px; }
+.grid-label   { font-size:.82rem; font-weight:800; color:var(--muted); }
+
+/* 範例格：overflow visible 讓 HanziWriter SVG 正常 */
+#ref-target {
+  position:relative;
+}
+#ref-target > * { position:relative; z-index:1; }
+
+/* Quiz 格：不設 overflow:hidden，確保觸控事件能正常觸達 SVG */
+.quiz-box {
+  width:var(--grid); height:var(--grid);
+  border:3px solid #c8d8ec; border-radius:18px;
+  background-color:white; flex-shrink:0; position:relative;
+  cursor:crosshair;
+  background-image:
+    linear-gradient(to right,  rgba(200,216,236,.45) 1px,transparent 1px),
+    linear-gradient(to bottom, rgba(200,216,236,.45) 1px,transparent 1px),
+    linear-gradient(to right,  #c8d8ec 1px,transparent 1px),
+    linear-gradient(to bottom, #c8d8ec 1px,transparent 1px);
+  background-size:
+    calc(var(--grid)/9) calc(var(--grid)/9),
+    calc(var(--grid)/9) calc(var(--grid)/9),
+    33.333% 33.333%,
+    33.333% 33.333%;
+}
+.quiz-box svg { border-radius:15px; }
+
+.btn-replay {
+  display:flex; align-items:center; justify-content:center; gap:8px;
+  padding:10px 0; border-radius:13px; border:none;
+  width:var(--grid); background:var(--blue); color:white;
+  font-family:'Nunito','Noto Sans TC',sans-serif;
+  font-size:.92rem; font-weight:800; cursor:pointer; transition:all .15s;
+}
+.btn-replay:active { transform:scale(.97); background:var(--blue-dk); }
+
+/* 回饋框 */
+.feedback-box {
+  width:var(--grid);
+  border-radius:14px; padding:13px 14px;
+  font-size:1rem; font-weight:800; text-align:center;
+  min-height:72px; display:flex; align-items:center; justify-content:center;
+  line-height:1.6; transition:all .3s; border:3px solid transparent;
+}
+.fb-idle    { background:var(--blue-lt); color:var(--muted); border-color:#d0e8f8; }
+.fb-ok      { background:#e8f8ee; color:var(--green-dk); border-color:var(--green); }
+.fb-wrong   { background:#fff0f0; color:var(--red); border-color:#ffb3b3; }
+.fb-praise  { background:#fff8e1; color:#8a6200; border-color:var(--yellow); }
+.fb-big     { font-size:1.15rem; animation:popIn .4s cubic-bezier(.34,1.56,.64,1); }
+@keyframes popIn { 0%{transform:scale(.88);opacity:.5} 100%{transform:scale(1);opacity:1} }
+
+.btn-ctrl {
+  display:flex; align-items:center; justify-content:center; gap:7px;
+  padding:11px 14px; border-radius:12px; border:none;
+  font-family:'Nunito','Noto Sans TC',sans-serif;
+  font-size:.9rem; font-weight:800; cursor:pointer; transition:all .15s;
+}
+.btn-ctrl:active { transform:scale(.96); }
+.btn-clear { background:#fff3e0; color:var(--orange); }
+.btn-next  { background:var(--blue); color:white; }
+.btn-next:disabled { background:#b0c8e8; cursor:not-allowed; opacity:.7; }
+
+/* 閃光 */
+@keyframes flashGreen {
+  0%  { border-color:var(--green); box-shadow:0 0 0 0 rgba(82,201,122,.7); }
+  60% { box-shadow:0 0 0 18px rgba(82,201,122,0); }
+  100%{ border-color:#c8d8ec; box-shadow:none; }
+}
+@keyframes flashRed {
+  0%  { border-color:var(--red); box-shadow:0 0 0 0 rgba(232,68,68,.7); }
+  60% { box-shadow:0 0 0 18px rgba(232,68,68,0); }
+  100%{ border-color:#c8d8ec; box-shadow:none; }
+}
+.flash-green { animation:flashGreen .55s ease forwards; }
+.flash-red   { animation:flashRed   .55s ease forwards; }
+
+/* 練習控制列 */
+.practice-ctrl {
+  display:flex; gap:10px; width:var(--grid); margin-top:4px; flex-wrap:wrap;
+}
+.practice-ctrl .btn-ctrl { flex:1; min-width:100px; }
+
+/* ══ 默寫模式 ══ */
+.dict-wrap {
+  display:flex; flex-direction:column; align-items:center;
+  gap:14px; width:100%;
+}
+.dict-info {
+  background:var(--white); border-radius:14px; padding:14px 20px;
+  box-shadow:var(--shadow); width:100%; max-width:600px; text-align:center;
+}
+.dict-info-title { font-size:.95rem; font-weight:900; margin-bottom:4px; }
+.dict-info-sub   { font-size:.82rem; color:var(--muted); font-weight:600; line-height:1.7; }
+
+/* 默寫 Canvas 格 */
+.dict-canvas-wrap {
+  width:var(--grid); height:var(--grid);
+  border:3px solid #c8d8ec; border-radius:18px;
+  background-color:white; position:relative; overflow:hidden; flex-shrink:0;
+  background-image:
+    linear-gradient(to right,  rgba(200,216,236,.45) 1px,transparent 1px),
+    linear-gradient(to bottom, rgba(200,216,236,.45) 1px,transparent 1px),
+    linear-gradient(to right,  #c8d8ec 1px,transparent 1px),
+    linear-gradient(to bottom, #c8d8ec 1px,transparent 1px);
+  background-size:
+    calc(var(--grid)/9) calc(var(--grid)/9),
+    calc(var(--grid)/9) calc(var(--grid)/9),
+    33.333% 33.333%,
+    33.333% 33.333%;
+}
+#dict-canvas {
+  display:block; touch-action:none; cursor:crosshair;
+  width:100%; height:100%;
+}
+
+/* 默寫控制列 */
+.dict-ctrl { display:flex; gap:10px; }
+
+/* 結果面板 */
+.result-panel {
+  display:none; flex-direction:column; align-items:center; gap:14px;
+  background:var(--white); border-radius:var(--radius);
+  padding:20px; box-shadow:var(--shadow); width:100%; max-width:600px;
+}
+.result-panel.show { display:flex; animation:popIn .4s cubic-bezier(.34,1.56,.64,1); }
+.result-compare {
+  display:flex; gap:18px; align-items:center; flex-wrap:wrap; justify-content:center;
+}
+.result-col  { display:flex; flex-direction:column; align-items:center; gap:6px; }
+.result-lbl  { font-size:.8rem; font-weight:800; color:var(--muted); }
+.result-img  { width:140px; height:140px; border-radius:12px; border:3px solid #c8d8ec; background:white; }
+.result-ref  {
+  width:140px; height:140px; border-radius:12px; border:3px solid #c8d8ec;
+  display:flex; align-items:center; justify-content:center;
+  font-size:6rem; font-family:'Noto Serif TC',serif; font-weight:900;
+  background-image:linear-gradient(to right,#c8d8ec 1px,transparent 1px),linear-gradient(to bottom,#c8d8ec 1px,transparent 1px);
+  background-size:33.333% 33.333%,33.333% 33.333%;
+}
+.score-wrap  { width:100%; max-width:340px; }
+.score-label { font-size:.85rem; font-weight:800; color:var(--muted); margin-bottom:6px; text-align:center; }
+.score-track {
+  height:24px; background:#eee; border-radius:20px; overflow:hidden;
+  box-shadow:inset 0 2px 6px rgba(0,0,0,.08);
+}
+.score-fill {
+  height:100%; border-radius:20px;
+  transition:width .9s cubic-bezier(.34,1.56,.64,1);
+  display:flex; align-items:center; justify-content:flex-end; padding-right:10px;
+  font-size:.8rem; font-weight:900; color:white; min-width:44px;
+}
+.score-fill.great { background:linear-gradient(90deg,#52c97a,#30b060); }
+.score-fill.ok    { background:linear-gradient(90deg,#ffd54f,#ffb300); }
+.score-fill.retry { background:linear-gradient(90deg,#ff8c42,#e84444); }
+.verdict-text {
+  font-size:1.1rem; font-weight:900; padding:12px 20px;
+  border-radius:14px; text-align:center; width:100%;
+}
+.vt-great { background:#e8f8ee; color:var(--green-dk); }
+.vt-ok    { background:#fff8e1; color:#8a6200; }
+.vt-retry { background:#fff0f0; color:var(--red); }
+
+/* 70% 未達標提示 */
+.pass-hint {
+  font-size:.82rem; font-weight:800; color:var(--red);
+  background:#fff0f0; border-radius:10px; padding:8px 14px;
+  text-align:center; display:none;
+}
+.pass-hint.show { display:block; }
+
+.result-btns { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; }
+.btn-result {
+  padding:11px 22px; border-radius:12px; border:none;
+  font-family:'Nunito','Noto Sans TC',sans-serif;
+  font-size:.92rem; font-weight:800; cursor:pointer; transition:all .15s; min-width:120px;
+}
+.btn-result:active { transform:scale(.96); }
+.btn-result-retry { background:#fff3e0; color:var(--orange); }
+.btn-result-prac  { background:var(--blue-lt); color:var(--blue-dk); }
+.btn-result-next  { background:var(--blue); color:white; }
+.btn-result-next:disabled { background:#b0c8e8; cursor:not-allowed; opacity:.7; }
+
+/* ══ 底部大按鈕（練習模式：全寬；默寫模式：右下角浮動） ══ */
+
+/* 練習模式：全寬底部列 */
+.bottom-bar {
+  position:fixed; bottom:0; left:0; right:0; z-index:60;
+  padding:10px 16px 16px;
+  background:linear-gradient(to top,rgba(238,245,252,1) 60%,rgba(238,245,252,0));
+  display:flex; flex-direction:column; gap:8px;
+}
+.btn-big {
+  width:100%; padding:16px;
+  border:none; border-radius:16px;
+  font-family:'Nunito','Noto Sans TC',sans-serif;
+  font-size:1.15rem; font-weight:900; cursor:pointer; transition:all .15s;
+  display:flex; align-items:center; justify-content:center; gap:10px;
+  box-shadow:0 5px 18px rgba(0,0,0,.14);
+}
+.btn-big:active { transform:scale(.97); }
+.btn-big-exam { background:linear-gradient(135deg,#c22,var(--red)); color:white; }
+.btn-big-prac { background:linear-gradient(135deg,var(--blue),var(--blue-dk)); color:white; }
+.btn-big-icon { font-size:1.5rem; }
+
+/* 默寫模式：右下角浮動小按鈕組 */
+.dict-float-bar {
+  position:fixed; bottom:20px; right:16px; z-index:60;
+  display:flex; flex-direction:column; gap:8px; align-items:flex-end;
+}
+.btn-float {
+  border:none; border-radius:50px;
+  font-family:'Nunito','Noto Sans TC',sans-serif;
+  font-size:.88rem; font-weight:900; cursor:pointer; transition:all .15s;
+  display:flex; align-items:center; gap:8px;
+  padding:11px 18px;
+  box-shadow:0 4px 16px rgba(0,0,0,.22);
+  white-space:nowrap;
+}
+.btn-float:active { transform:scale(.95); }
+.btn-float-submit { background:linear-gradient(135deg,#c22,var(--red)); color:white; }
+.btn-float-prac   { background:linear-gradient(135deg,var(--blue),var(--blue-dk)); color:white; }
+
+/* Toast */
+.toast {
+  position:fixed; top:70px; left:50%;
+  transform:translateX(-50%) translateY(-16px);
+  background:white; border-radius:20px; padding:12px 26px;
+  box-shadow:0 8px 30px rgba(0,0,0,.14);
+  font-size:1.05rem; font-weight:900;
+  opacity:0; transition:all .35s cubic-bezier(.34,1.56,.64,1);
+  z-index:300; pointer-events:none; white-space:nowrap;
+}
+.toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+@keyframes sparkle { 0%,100%{transform:scale(1)} 50%{transform:scale(1.3)} }
+</style>
 </head>
 <body>
+<div class="app">
 
-    <div class="app-container">
-        <header class="app-header">
-            <input type="text" id="char-input" placeholder="請輸入生字，例如：學習勤奮">
-            <button id="start-btn">開始練習</button>
-            <div class="theme-switch-container">
-                <label class="theme-switch" for="theme-checkbox">
-                    <input type="checkbox" id="theme-checkbox" />
-                    <div class="slider round"></div>
-                </label>
-                <span>暗色</span>
-            </div>
-        </header>
-
-        <main class="main-content">
-            <aside class="char-list-container">
-                <h3>生字清單</h3>
-                <ul id="char-list"></ul>
-            </aside>
-
-            <section class="writer-section">
-                <div id="writer-target" class="writer-target">
-                    <!-- 漢字書寫畫布將會顯示在這裡 -->
-                </div>
-                <div id="completion-feedback" class="completion-feedback">○</div>
-                <div class="writer-controls">
-                    <button id="erase-btn" class="stage-btn">清除</button>
-                    <button id="play-sound-btn" class="stage-btn">🔊</button>
-                    <div class="slider-container">
-                        <label for="stroke-width-slider">粗細</label>
-                        <input type="range" id="stroke-width-slider" min="5" max="30" value="10">
-                    </div>
-                    <button id="stage-1-btn" class="stage-btn active">提示</button>
-                    <button id="stage-3-btn" class="stage-btn">挑戰</button>
-                </div>
-            </section>
-        </main>
+<!-- ══ 畫面一：首頁 ══ -->
+<div class="screen active" id="screen-home">
+  <div class="topbar">
+    <div class="topbar-title">✏️ 太平國小<span>國字學習</span></div>
+    <div class="star-badge">⭐ <span id="star-num-home">0</span></div>
+  </div>
+  <div class="home-hero">
+    <div class="home-school">臺東縣太平國小</div>
+    <div class="home-title">國字<span>學習</span>系統</div>
+  </div>
+  <div class="home-card">
+    <div class="home-card-label">📝 請輸入今天要學的字</div>
+    <div class="char-input-row">
+      <input class="char-input" id="char-input" type="text"
+        placeholder="例如：山水火土木" maxlength="20" value="山水火土木">
+      <button class="btn-start" onclick="startLesson()">開始上課 →</button>
     </div>
+    <div class="home-tip">💡 直接輸入漢字，最多 20 個字，按「開始上課」進入學習。</div>
+  </div>
+</div>
 
-    <div id="completion-dialog" class="dialog-overlay" style="display: none;">
-        <div class="dialog-box">
-            <p>太棒了！</p>
-            <div class="dialog-buttons">
-                <button id="practice-again-btn">再寫一次</button>
-            </div>
+<!-- ══ 畫面二：生字選單 ══ -->
+<div class="screen right" id="screen-menu">
+  <div class="topbar">
+    <div class="topbar-left">
+      <button class="btn-back" onclick="goTo('home')">← 返回</button>
+      <div class="topbar-title">今天的<span>生字</span></div>
+    </div>
+    <div class="star-badge">⭐ <span id="star-num-menu">0</span></div>
+  </div>
+  <div class="menu-body" id="menu-body"></div>
+</div>
+
+<!-- ══ 畫面三：學習頁 ══ -->
+<div class="screen right" id="screen-learn">
+  <div class="topbar">
+    <div class="topbar-left">
+      <button class="btn-back" onclick="goTo('menu')">← 返回</button>
+      <div class="topbar-title" id="learn-title">學習</div>
+    </div>
+    <div class="star-badge">⭐ <span id="star-num-learn">0</span></div>
+  </div>
+
+  <div class="mode-banner">
+    <div class="mode-icon" id="mode-icon">✏️</div>
+    <div>
+      <div class="mode-info-title" id="mode-title">筆順練習</div>
+      <div class="mode-info-sub"  id="mode-sub">看左邊筆順，在右邊格子照著寫</div>
+    </div>
+  </div>
+
+  <div class="learn-body" id="learn-body">
+
+    <!-- ── 練習模式 ── -->
+    <div id="panel-practice">
+      <div class="practice-wrap">
+
+        <!-- 範例筆順格 -->
+        <div class="practice-col">
+          <div class="grid-label">👁 範例筆順</div>
+          <div class="nine-grid" id="ref-target"></div>
+          <button class="btn-replay" onclick="playRef()">▶ 再播一次</button>
         </div>
+
+        <!-- 互動練習格 -->
+        <div class="practice-col">
+          <div class="grid-label">✍️ 練習格</div>
+          <div class="quiz-box" id="quiz-target"></div>
+          <div class="feedback-box fb-idle" id="feedback-box">照著左邊的筆順<br>在右邊一筆一筆寫！</div>
+          <div class="practice-ctrl">
+            <button class="btn-ctrl btn-clear" onclick="restartQuiz()">🔄 重新練習</button>
+          </div>
+        </div>
+
+      </div>
     </div>
 
-    <script src="app.js"></script>
+    <!-- ── 默寫模式 ── -->
+    <div id="panel-dict" style="display:none">
+      <div class="dict-wrap">
 
-    <audio id="completion-sound" src="D:\github\writing_app\CorrectSound.mp3" preload="auto"></audio>
+        <div class="dict-info">
+          <div class="dict-info-title">📝 默寫測驗</div>
+          <div class="dict-info-sub">靠自己的記憶把這個字寫出來！<br>寫完後按下方的「交　卷」按鈕。</div>
+        </div>
+
+        <!-- 默寫書寫格 -->
+        <div class="dict-canvas-wrap" id="dict-canvas-wrap">
+          <canvas id="dict-canvas"></canvas>
+        </div>
+
+        <div class="dict-ctrl">
+          <button class="btn-ctrl btn-clear" onclick="clearDictCanvas()">🗑 清除重寫</button>
+        </div>
+
+        <!-- 結果面板 -->
+        <div class="result-panel" id="result-panel">
+          <div style="font-size:1rem;font-weight:900">📊 對照結果</div>
+          <div class="result-compare">
+            <div class="result-col">
+              <div class="result-lbl">✍️ 你寫的</div>
+              <canvas class="result-img" id="result-student" width="140" height="140"></canvas>
+            </div>
+            <div style="font-size:1.8rem">↔</div>
+            <div class="result-col">
+              <div class="result-lbl">📖 正確字形</div>
+              <div class="result-ref" id="result-answer"></div>
+            </div>
+          </div>
+          <div class="score-wrap">
+            <div class="score-label" id="score-label">計算中...</div>
+            <div class="score-track">
+              <div class="score-fill" id="score-fill" style="width:0%"></div>
+            </div>
+          </div>
+          <div class="verdict-text" id="verdict-text"></div>
+          <div class="pass-hint" id="pass-hint">⚠️ 相似度需達到 70% 才能進到下一個字，再試一次吧！</div>
+          <div class="result-btns">
+            <button class="btn-result btn-result-retry" onclick="retryDict()">🔄 再寫一次</button>
+            <button class="btn-result btn-result-next"  id="btn-dict-next" onclick="nextChar()">下一個字 →</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div><!-- learn-body -->
+
+  <!-- 底部大按鈕 -->
+  <div class="bottom-bar" id="bottom-bar">
+    <button class="btn-big" id="btn-mode-switch" style="background:#c8d8e8;color:#8da4b8;cursor:not-allowed" disabled>
+      <span class="btn-big-icon">📝</span><span>完成練習後開始默寫</span>
+    </button>
+  </div>
+</div>
+</div><!-- .app -->
+
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+
+// ═══════════════════════════════════════
+//  Web Audio API 音效引擎
+// ═══════════════════════════════════════
+var AC = null;
+function getAC() {
+  if (!AC) AC = new (window.AudioContext || window.webkitAudioContext)();
+  return AC;
+}
+
+// 解鎖 AudioContext（iOS 需要在 touch 事件中初始化）
+document.addEventListener('touchstart', function(){ getAC(); }, { once:true });
+document.addEventListener('click',      function(){ getAC(); }, { once:true });
+
+function playTone(freq, type, duration, vol, delay) {
+  try {
+    var ac  = getAC();
+    var osc = ac.createOscillator();
+    var gain= ac.createGain();
+    osc.connect(gain); gain.connect(ac.destination);
+    osc.type = type || 'sine';
+    osc.frequency.setValueAtTime(freq, ac.currentTime + (delay||0));
+    gain.gain.setValueAtTime(vol||0.18, ac.currentTime + (delay||0));
+    gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + (delay||0) + duration);
+    osc.start(ac.currentTime + (delay||0));
+    osc.stop(ac.currentTime  + (delay||0) + duration);
+  } catch(e){}
+}
+
+// 介面切換音：低鳴一聲
+function sfxSwipe() {
+  playTone(220, 'sine', 0.12, 0.10);
+}
+
+// 點擊音：輕脆一聲
+function sfxTap() {
+  playTone(660, 'triangle', 0.08, 0.12);
+}
+
+// 筆畫正確：上升兩音
+function sfxCorrect() {
+  playTone(523, 'sine', 0.12, 0.14, 0);
+  playTone(659, 'sine', 0.12, 0.14, 0.12);
+}
+
+// 筆畫錯誤：短促低音
+function sfxWrong() {
+  playTone(180, 'square', 0.10, 0.10, 0);
+}
+
+// 慶祝音效：五音上升
+function sfxCelebrate() {
+  var notes = [523,659,784,880,1047];
+  notes.forEach(function(f,i){ playTone(f,'sine',0.18,0.18,i*0.1); });
+}
+
+// 默寫合格音效：和弦
+function sfxPass() {
+  [523,659,784].forEach(function(f,i){ playTone(f,'sine',0.3,0.15,i*0.05); });
+}
+
+// ═══════════════════════════════════════
+//  語音合成（國字讀音）
+// ═══════════════════════════════════════
+var synth = window.speechSynthesis;
+var zhVoice = null;
+
+function loadVoices() {
+  var voices = synth.getVoices();
+  // 優先找台灣中文，其次中文
+  zhVoice = voices.find(function(v){ return v.lang==='zh-TW'; })
+           || voices.find(function(v){ return v.lang.startsWith('zh'); })
+           || null;
+}
+loadVoices();
+if (synth.onvoiceschanged !== undefined) synth.onvoiceschanged = loadVoices;
+
+function speakChar(char) {
+  if (!synth || !char) return;
+  synth.cancel();
+  var utt = new SpeechSynthesisUtterance(char);
+  utt.lang = 'zh-TW';
+  utt.rate = 0.85;
+  utt.pitch = 1.1;
+  if (zhVoice) utt.voice = zhVoice;
+  synth.speak(utt);
+}
+
+// ═══════════════════════════════════════
+//  全域狀態
+// ═══════════════════════════════════════
+var chars      = [];
+var charStatus = {};
+var currentIdx = 0;
+var stars      = 0;
+var currentScreen = 'home';
+var currentMode   = 'practice';
+var dictScore     = -1;  // 本次默寫分數（-1 = 尚未提交）
+
+var refWriter  = null;
+var quizWriter = null;
+
+var dCanvas, dCtx, dDrawing = false;
+var dSize = 340;
+
+// ═══════════════════════════════════════
+//  畫面切換
+// ═══════════════════════════════════════
+var SCREENS = ['home','menu','learn'];
+
+function goTo(name) {
+  var from = currentScreen, to = name;
+  if (from === to) return;
+  var fromEl = document.getElementById('screen-'+from);
+  var toEl   = document.getElementById('screen-'+to);
+  var fwd    = SCREENS.indexOf(to) > SCREENS.indexOf(from);
+  sfxSwipe();
+  toEl.className = 'screen '+(fwd?'right':'left');
+  void toEl.offsetWidth;
+  fromEl.className = 'screen '+(fwd?'left':'right');
+  toEl.className   = 'screen active';
+  currentScreen = to;
+}
+
+// ═══════════════════════════════════════
+//  畫面一
+// ═══════════════════════════════════════
+function startLesson() {
+  var raw  = document.getElementById('char-input').value.trim();
+  var list = Array.from(new Set(raw.replace(/\s/g,'').split('').filter(function(c){ return c; })));
+  if (!list.length) return;
+  sfxTap();
+  chars = list; charStatus = {}; stars = 0;
+  chars.forEach(function(c){ charStatus[c]='new'; });
+  updateStars(0);
+  renderMenu();
+  goTo('menu');
+}
+
+// ═══════════════════════════════════════
+//  畫面二：生字選單
+// ═══════════════════════════════════════
+function renderMenu() {
+  var body = document.getElementById('menu-body');
+  body.innerHTML = chars.map(function(c,i){
+    var st  = charStatus[c]||'new';
+    var lbl = {new:'尚未學習',practiced:'練習中',mastered:'已掌握'}[st];
+    var cls = {new:'status-new',practiced:'status-practiced',mastered:'status-mastered'}[st];
+    var card= st==='mastered'?'char-card mastered':st==='practiced'?'char-card practiced':'char-card';
+    return '<div class="'+card+'" id="card-'+i+'" onclick="onCardClick(event,'+i+')">'
+      +'<div class="char-card-check">✓</div>'
+      +'<div class="char-card-glyph">'+c+'</div>'
+      +'<div class="char-card-status '+cls+'">'+lbl+'</div>'
+      +'</div>';
+  }).join('');
+}
+
+function onCardClick(evt, idx) {
+  sfxTap();
+  // 漣漪效果
+  var card = document.getElementById('card-'+idx);
+  var ripple = document.createElement('div');
+  ripple.className = 'char-card-ripple';
+  var r = card.getBoundingClientRect();
+  var size = Math.max(r.width, r.height);
+  ripple.style.cssText = 'width:'+size+'px;height:'+size+'px;left:'+(evt.clientX-r.left-size/2)+'px;top:'+(evt.clientY-r.top-size/2)+'px;';
+  card.appendChild(ripple);
+  setTimeout(function(){ ripple.remove(); }, 500);
+
+  // 先發音
+  speakChar(chars[idx]);
+  // 短暫延遲後切換畫面，讓語音有機會觸發
+  setTimeout(function(){ openChar(idx); }, 300);
+}
+
+// ═══════════════════════════════════════
+//  進入學習頁
+// ═══════════════════════════════════════
+function openChar(idx) {
+  currentIdx = idx;
+  var char   = chars[idx];
+  document.getElementById('learn-title').innerHTML =
+    '「<span style="color:var(--orange);font-family:\'Noto Serif TC\',serif">'+char+'</span>」';
+  goTo('learn');
+  setTimeout(function(){ switchToPractice(); }, 450);
+}
+
+// ═══════════════════════════════════════
+//  練習模式
+// ═══════════════════════════════════════
+function switchToPractice() {
+  currentMode = 'practice';
+  document.getElementById('panel-practice').style.display = '';
+  document.getElementById('panel-dict').style.display     = 'none';
+  document.getElementById('mode-icon').textContent  = '✏️';
+  document.getElementById('mode-title').textContent = '筆順練習';
+  document.getElementById('mode-sub').textContent   = '看左邊筆順，在右邊格子照著寫';
+
+  // 移除默寫浮動列
+  var fbar = document.getElementById('dict-float-bar');
+  if (fbar) fbar.remove();
+  // 恢復全寬底部列
+  var bb = document.getElementById('bottom-bar');
+  bb.style.display = '';
+  bb.innerHTML = '<button class="btn-big" id="btn-mode-switch" style="background:#c8d8e8;color:#8da4b8;cursor:not-allowed" disabled>'
+    +'<span class="btn-big-icon">📝</span><span>完成練習後開始默寫</span></button>';
+
+  setFeedback('fb-idle','照著左邊的筆順<br>在右邊一筆一筆寫！');
+  initPractice(chars[currentIdx]);
+}
+
+function initPractice(char) {
+  // 範例 writer
+  var rt = document.getElementById('ref-target');
+  rt.innerHTML = '';
+  refWriter = HanziWriter.create('ref-target', char, {
+    width:getGridPx(), height:getGridPx(), padding:Math.round(getGridPx()*0.07),
+    strokeColor:'#ff8c42', strokeAnimationSpeed:.7, delayBetweenStrokes:500,
+    showCharacter:false, showOutline:true, outlineColor:'#c8dff5',
+    onLoadCharDataSuccess:function(){ setTimeout(function(){ refWriter&&refWriter.animateCharacter(); },400); },
+    onLoadCharDataError:function(){ rt.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#aaa;font-size:.9rem">找不到筆順資料</div>'; }
+  });
+  initQuiz(char);
+}
+
+function initQuiz(char) {
+  var qt = document.getElementById('quiz-target');
+  qt.innerHTML = '';
+  qt.classList.remove('flash-green','flash-red');
+
+  var sz = getGridPx();
+  quizWriter = HanziWriter.create('quiz-target', char, {
+    width:sz, height:sz, padding:Math.round(sz*0.07),
+    strokeColor:'#2d6fa8', outlineColor:'#c8dff5',
+    drawingColor:'#2d6fa8', drawingWidth:Math.max(4, Math.round(sz*0.013)),
+    highlightColor:'#ffd54f', showCharacter:false, showOutline:true, leniency:1.2,
+    onLoadCharDataSuccess:function(){ startQuiz(); }
+  });
+}
+
+function startQuiz() {
+  quizWriter.quiz({
+    onMistake:function(data){
+      flashBox('quiz-target','red');
+      sfxWrong();
+      setFeedback('fb-wrong','⚠️ 偏掉囉！<br>跟著黃色提示筆畫寫！');
+    },
+    onCorrectStroke:function(data){
+      flashBox('quiz-target','green');
+      sfxCorrect();
+      setFeedback('fb-ok','✓ 第 '+(data.strokeNum+1)+' 筆對了！<br>繼續加油！');
+    },
+    onComplete:function(summary){
+      var mistakes = summary.totalMistakes;
+      if (mistakes === 0) {
+        sfxCelebrate();
+        setFeedback('fb-ok fb-big','🎉 完美！一筆都沒錯！');
+        addStars(5); charStatus[chars[currentIdx]]='mastered';
+        showToast('⭐ 完美！+5 顆星！');
+      } else if (mistakes <= 3) {
+        sfxPass();
+        setFeedback('fb-praise fb-big','😊 完成！錯了 '+mistakes+' 筆，再練更好！');
+        addStars(3); charStatus[chars[currentIdx]]='practiced';
+        showToast('⭐ +3 顆星！繼續加油！');
+      } else {
+        sfxWrong();
+        setFeedback('fb-wrong fb-big','💪 完成！錯了 '+mistakes+' 筆，多練幾次！');
+        addStars(1); charStatus[chars[currentIdx]]='practiced';
+      }
+      renderMenu();
+      // 練習完成：解鎖底部「開始默寫」大按鈕
+      var ms = document.getElementById('btn-mode-switch');
+      if (ms) {
+        ms.disabled = false;
+        ms.style.background = '';
+        ms.style.color = '';
+        ms.style.cursor = '';
+        ms.className = 'btn-big btn-big-exam';
+        ms.innerHTML = '<span class="btn-big-icon">📝</span><span>開始默寫測驗</span>';
+        ms.onclick = switchToDict;
+      }
+    }
+  });
+}
+
+function flashBox(id, color) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  el.classList.remove('flash-green','flash-red');
+  void el.offsetWidth;
+  el.classList.add(color==='red'?'flash-red':'flash-green');
+}
+
+function restartQuiz() {
+  sfxTap();
+  setFeedback('fb-idle','照著左邊的筆順<br>在右邊一筆一筆寫！');
+  initQuiz(chars[currentIdx]);
+}
+
+function playRef() {
+  sfxTap();
+  var char = chars[currentIdx], el = document.getElementById('ref-target');
+  el.innerHTML = '';
+  var sz = getGridPx();
+  refWriter = HanziWriter.create('ref-target', char, {
+    width:sz, height:sz, padding:Math.round(sz*0.07),
+    strokeColor:'#ff8c42', strokeAnimationSpeed:.7, delayBetweenStrokes:500,
+    showCharacter:false, showOutline:true, outlineColor:'#c8dff5',
+    onLoadCharDataSuccess:function(){ refWriter.animateCharacter(); }
+  });
+}
+
+function setFeedback(cls, html) {
+  var el = document.getElementById('feedback-box');
+  if (!el) return;
+  el.className = 'feedback-box '+cls;
+  el.innerHTML = html;
+}
+
+// ═══════════════════════════════════════
+//  默寫模式
+// ═══════════════════════════════════════
+function switchToDict() {
+  sfxSwipe();
+  currentMode = 'dict';
+  dictScore   = -1;
+
+  document.getElementById('panel-practice').style.display = 'none';
+  document.getElementById('panel-dict').style.display     = '';
+  document.getElementById('result-panel').classList.remove('show');
+  document.getElementById('mode-icon').textContent  = '📝';
+  document.getElementById('mode-title').textContent = '默寫測驗';
+  document.getElementById('mode-sub').textContent   = '靠自己的記憶把字寫出來';
+
+  // 底部：隱藏全寬列，改用右下角浮動小按鈕
+  var bb = document.getElementById('bottom-bar');
+  bb.style.display = 'none';
+  // 移除舊浮動列（如有）
+  var old = document.getElementById('dict-float-bar');
+  if (old) old.remove();
+  var fbar = document.createElement('div');
+  fbar.className = 'dict-float-bar'; fbar.id = 'dict-float-bar';
+  fbar.innerHTML =
+    '<button class="btn-float btn-float-submit" onclick="submitDictation()">'
+    +'<span>✓</span><span>交　卷</span></button>';
+  document.body.appendChild(fbar);
+
+  initDictCanvas();
+}
+
+function getGridPx() {
+  // 讀取 CSS 變數計算後的實際像素值
+  var el = document.querySelector('.nine-grid') || document.querySelector('.quiz-box') || document.querySelector('.dict-canvas-wrap');
+  if (el) return el.getBoundingClientRect().width || 340;
+  return 340;
+}
+
+function initDictCanvas() {
+  var wrap = document.getElementById('dict-canvas-wrap');
+  var sz   = Math.round(wrap.getBoundingClientRect().width) || 340;
+  dSize    = sz;
+
+  var old = document.getElementById('dict-canvas');
+  var neo = old.cloneNode(false);
+  neo.id  = 'dict-canvas';
+  neo.width  = sz;
+  neo.height = sz;
+  neo.style.width  = sz+'px';
+  neo.style.height = sz+'px';
+  old.parentNode.replaceChild(neo, old);
+  dCanvas  = neo;
+  dCtx     = dCanvas.getContext('2d');
+  dDrawing = false;
+
+  dCanvas.addEventListener('mousedown',  dStart);
+  dCanvas.addEventListener('mousemove',  dMove);
+  dCanvas.addEventListener('mouseup',    dEnd);
+  dCanvas.addEventListener('mouseleave', dEnd);
+  dCanvas.addEventListener('touchstart',  function(e){e.preventDefault();dStart(e.touches[0]);},{passive:false});
+  dCanvas.addEventListener('touchmove',   function(e){e.preventDefault();dMove(e.touches[0]); },{passive:false});
+  dCanvas.addEventListener('touchend',    function(e){e.preventDefault();dEnd();              },{passive:false});
+  dCanvas.addEventListener('touchcancel', function(e){e.preventDefault();dEnd();              },{passive:false});
+}
+
+function dPos(e) {
+  var r = dCanvas.getBoundingClientRect();
+  return { x:(e.clientX-r.left)*(dCanvas.width/r.width), y:(e.clientY-r.top)*(dCanvas.height/r.height) };
+}
+function dStart(e) { dDrawing=true; var p=dPos(e); dCtx.beginPath(); dCtx.moveTo(p.x,p.y); }
+function dMove(e)  {
+  if (!dDrawing) return;
+  var p=dPos(e);
+  dCtx.lineTo(p.x,p.y);
+  dCtx.strokeStyle='#1e2d3d';
+  dCtx.lineWidth=Math.max(5,Math.round(dSize*0.016));
+  dCtx.lineCap='round'; dCtx.lineJoin='round'; dCtx.stroke();
+}
+function dEnd() { if (!dDrawing) return; dDrawing=false; dCtx.closePath(); }
+
+function clearDictCanvas() {
+  sfxTap();
+  if (!dCtx) return;
+  dCtx.clearRect(0,0,dCanvas.width,dCanvas.height);
+  dDrawing = false; dictScore = -1;
+  document.getElementById('result-panel').classList.remove('show');
+}
+
+function retryDict() {
+  sfxTap();
+  clearDictCanvas();
+  // 滾回頂部
+  document.getElementById('learn-body').scrollTo({top:0,behavior:'smooth'});
+}
+
+// ── 交卷：像素相似度計算 ──
+function submitDictation() {
+  sfxTap();
+  var char = chars[currentIdx];
+  if (!dCtx) return;
+
+  // 檢查是否有筆跡
+  var px = dCtx.getImageData(0,0,dCanvas.width,dCanvas.height).data;
+  var hasInk = false;
+  for (var i=3;i<px.length;i+=4){ if(px[i]>20){hasInk=true;break;} }
+  if (!hasInk) { showToast('📝 還沒寫喔！請先在格子裡寫字！'); return; }
+
+  // 縮圖到結果欄
+  var rc = document.getElementById('result-student');
+  rc.getContext('2d').clearRect(0,0,140,140);
+  rc.getContext('2d').drawImage(dCanvas,0,0,140,140);
+  document.getElementById('result-answer').textContent = char;
+
+  computeSimilarity(char, dCanvas, function(score){
+    dictScore = score;
+    showResult(score, char);
+  });
+}
+
+// ── 相似度計算 v4 ──
+// 修正：先掃描 medians 所有點的實際邊界框，再做縮放對齊
+// 這樣不管字形在 HanziWriter 座標系的哪個位置，都能正確對齊到 canvas 中央
+
+function computeSimilarity(char, studentCanvas, callback) {
+  var SIZE = 256;
+  var PAD  = 24;
+
+  HanziWriter.loadCharacterData(char).then(function(data) {
+    if (!data || !data.medians || !data.medians.length) { callback(0); return; }
+
+    // ── 步驟 1：掃描所有 medians 點，取得實際邊界框 ──
+    var minX =  Infinity, minY =  Infinity;
+    var maxX = -Infinity, maxY = -Infinity;
+    data.medians.forEach(function(pts) {
+      pts.forEach(function(pt) {
+        if (pt[0] < minX) minX = pt[0];
+        if (pt[0] > maxX) maxX = pt[0];
+        if (pt[1] < minY) minY = pt[1];
+        if (pt[1] > maxY) maxY = pt[1];
+      });
+    });
+    var bboxW = maxX - minX || 1;
+    var bboxH = maxY - minY || 1;
+    // 保持等比例，取較大的邊做縮放
+    var bboxMax = Math.max(bboxW, bboxH);
+    var inner   = SIZE - PAD * 2;
+    var scale   = inner / bboxMax;
+    // 置中偏移：讓字形水平/垂直都置中
+    var offX = PAD + (inner - bboxW * scale) / 2;
+    var offY = PAD + (inner - bboxH * scale) / 2;
+    var strokeW = Math.max(10, Math.round(inner * 0.06));
+
+    // ── 步驟 2：畫參考字（medians 粗線，Y 翻轉對齊 canvas 座標） ──
+    var refC = document.createElement('canvas');
+    refC.width = refC.height = SIZE;
+    var refX = refC.getContext('2d');
+    refX.fillStyle = '#ffffff';
+    refX.fillRect(0, 0, SIZE, SIZE);
+    refX.strokeStyle = '#000000';
+    refX.lineWidth   = strokeW;
+    refX.lineCap     = 'round';
+    refX.lineJoin    = 'round';
+
+    data.medians.forEach(function(pts) {
+      if (!pts || pts.length < 1) return;
+      refX.beginPath();
+      pts.forEach(function(pt, pi) {
+        // X：左→右正常
+        // Y：HanziWriter Y 朝上，canvas Y 朝下，需翻轉
+        //   先把 y 相對 minY 歸零，乘 scale，再翻轉
+        var cx = offX + (pt[0] - minX) * scale;
+        var cy = offY + (bboxH - (pt[1] - minY)) * scale;
+        if (pi === 0) refX.moveTo(cx, cy);
+        else          refX.lineTo(cx, cy);
+      });
+      refX.stroke();
+    });
+
+    // ── 步驟 3：學生筆跡 canvas（縮放到同尺寸） ──
+    var stuC = document.createElement('canvas');
+    stuC.width = stuC.height = SIZE;
+    var stuX = stuC.getContext('2d');
+    stuX.fillStyle = '#ffffff';
+    stuX.fillRect(0, 0, SIZE, SIZE);
+    stuX.drawImage(studentCanvas, 0, 0, SIZE, SIZE);
+
+    // ── 步驟 4：對學生筆跡做 blur 膨脹，讓比對更寬容 ──
+    var dilC = document.createElement('canvas');
+    dilC.width = dilC.height = SIZE;
+    var dilX = dilC.getContext('2d');
+    var blurR = Math.round(strokeW * 0.5);
+    dilX.filter = 'blur(' + blurR + 'px)';
+    dilX.drawImage(stuC, 0, 0);
+    dilX.filter = 'none';
+
+    // 同樣對參考字 blur，讓邊緣更寬容
+    var refBlurC = document.createElement('canvas');
+    refBlurC.width = refBlurC.height = SIZE;
+    var rbX = refBlurC.getContext('2d');
+    rbX.filter = 'blur(' + blurR + 'px)';
+    rbX.drawImage(refC, 0, 0);
+    rbX.filter = 'none';
+
+    // ── 步驟 5：Jaccard 比對（兩邊都 blur 後比） ──
+    var refPx = rbX.getImageData(0, 0, SIZE, SIZE).data;
+    var stuPx = dilX.getImageData(0, 0, SIZE, SIZE).data;
+    var inter = 0, union = 0;
+    for (var i = 0; i < refPx.length; i += 4) {
+      var refInk = refPx[i + 3] > 20;   // 參考字模糊後 alpha
+      var stuInk = stuPx[i + 3] > 20;   // 學生筆跡模糊後 alpha
+      if (refInk || stuInk) union++;
+      if (refInk && stuInk) inter++;
+    }
+    var raw   = union > 0 ? (inter / union) : 0;
+    // 線條 vs 線條比對，Jaccard 仍偏低，做適度放大
+    var score = Math.min(100, Math.round(raw * 180));
+
+    // ── DEBUG：顯示兩張比對圖 ──
+    var dbgWrap = document.getElementById('debug-canvases');
+    if (!dbgWrap) {
+      dbgWrap = document.createElement('div');
+      dbgWrap.id = 'debug-canvases';
+      dbgWrap.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:8px';
+      var rp = document.getElementById('result-panel');
+      if (rp) rp.appendChild(dbgWrap);
+    }
+    // 建立兩個顯示用 canvas 並複製數據
+    function makeDbgCanvas(src, label) {
+      var dc = document.createElement('canvas');
+      dc.width = dc.height = SIZE;
+      dc.style.cssText = 'width:120px;height:120px;border:2px solid #c8d8ec;border-radius:8px';
+      dc.getContext('2d').drawImage(src, 0, 0);
+      return '<div style="text-align:center"><div style="font-size:.68rem;color:#aaa;margin-bottom:3px">'
+        + label + '</div>' + dc.outerHTML + '</div>';
+    }
+    dbgWrap.innerHTML = makeDbgCanvas(refC,  '參考字（程式看到的）')
+                      + makeDbgCanvas(stuC,  '學生筆跡');
+    // outerHTML 不帶像素，要手動複製
+    var nodes = dbgWrap.querySelectorAll('canvas');
+    if (nodes[0]) nodes[0].getContext('2d').drawImage(refC, 0, 0, SIZE, SIZE, 0, 0, SIZE, SIZE);
+    if (nodes[1]) nodes[1].getContext('2d').drawImage(stuC, 0, 0, SIZE, SIZE, 0, 0, SIZE, SIZE);
+
+    console.log('bbox:', minX, minY, maxX, maxY,
+      '| scale:', scale.toFixed(3),
+      '| raw:', raw.toFixed(4), '| score:', score,
+      '| inter:', inter, '| union:', union);
+
+    callback(score);
+
+  }).catch(function(err) {
+    console.warn('loadCharacterData error:', err);
+    callback(0);
+  });
+}
+
+function showResult(score, char) {
+  var fill    = document.getElementById('score-fill');
+  var lbl     = document.getElementById('score-label');
+  var verdict = document.getElementById('verdict-text');
+  var nextBtn = document.getElementById('btn-dict-next');
+  var hint    = document.getElementById('pass-hint');
+  var pct     = Math.min(score,100);
+
+  setTimeout(function(){ fill.style.width=pct+'%'; fill.textContent=pct+'%'; },100);
+
+  // 70% 才算過關
+  var passed = score >= 70;
+
+  if (score >= 70) {
+    fill.className='score-fill great';
+    lbl.textContent='相似度：'+score+'%（很像！）';
+    verdict.className='verdict-text vt-great';
+    verdict.innerHTML='🎉 寫得很棒！跟正確字形很像！';
+    addStars(5); charStatus[char]='mastered';
+    sfxCelebrate(); showToast('⭐ 太棒了！+5 顆星！');
+  } else if (score >= 40) {
+    fill.className='score-fill ok';
+    lbl.textContent='相似度：'+score+'%（再加油）';
+    verdict.className='verdict-text vt-ok';
+    verdict.innerHTML='💪 不錯喔！再多練習更像！';
+    addStars(2); charStatus[char]='practiced';
+    sfxPass();
+  } else {
+    fill.className='score-fill retry';
+    lbl.textContent='相似度：'+score+'%（需要加油）';
+    verdict.className='verdict-text vt-retry';
+    verdict.innerHTML='📝 跟正確字差很多，先去練習再試試！';
+    sfxWrong();
+    charStatus[char]='practiced';
+  }
+
+  // 下一個字按鈕：未達 70% 則鎖定
+  nextBtn.disabled = !passed;
+  hint.classList.toggle('show', !passed);
+
+  document.getElementById('result-panel').classList.add('show');
+  renderMenu();
+
+  setTimeout(function(){
+    var rp = document.getElementById('result-panel');
+    if (rp) rp.scrollIntoView({behavior:'smooth',block:'center'});
+  },200);
+}
+
+// ═══════════════════════════════════════
+//  下一個字
+// ═══════════════════════════════════════
+function nextChar() {
+  sfxTap();
+  if (currentIdx < chars.length-1) {
+    openChar(currentIdx+1);
+  } else {
+    sfxCelebrate();
+    showToast('🎊 全部學完了！超棒的！');
+    setTimeout(function(){ goTo('menu'); },800);
+  }
+}
+
+// ═══════════════════════════════════════
+//  星星
+// ═══════════════════════════════════════
+function addStars(n) { stars+=n; updateStars(stars); }
+function updateStars(n) {
+  ['star-num-home','star-num-menu','star-num-learn'].forEach(function(id){
+    var el=document.getElementById(id);
+    if (!el) return;
+    el.textContent=n;
+    el.style.animation='none';
+    void el.offsetHeight;
+    el.style.animation='sparkle .45s ease';
+  });
+}
+
+// ═══════════════════════════════════════
+//  Toast
+// ═══════════════════════════════════════
+function showToast(html) {
+  var t=document.getElementById('toast');
+  t.innerHTML=html; t.classList.add('show');
+  setTimeout(function(){ t.classList.remove('show'); },2600);
+}
+
+// ═══════════════════════════════════════
+//  啟動
+// ═══════════════════════════════════════
+function waitHW(cb) {
+  if (typeof HanziWriter!=='undefined') cb();
+  else setTimeout(function(){ waitHW(cb); },100);
+}
+window.addEventListener('load', function(){ waitHW(function(){}); });
+</script>
 </body>
 </html>
