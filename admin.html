@@ -418,18 +418,12 @@ body {
       <div class="card" style="margin-bottom:16px" id="csv-upload-card">
         <div class="card-title">📥 批次匯入課程（CSV）</div>
         <div style="background:#f8fafc;border-radius:10px;padding:14px;margin-bottom:14px;font-size:.82rem;font-weight:600;color:var(--gray);line-height:1.8">
-          <strong>CSV 格式範例：</strong><br>
-          冊,課,課名,生字<br>
-          1,1,第一課,山水火土木<br>
-          1,2,第二課,日月星雲風<br>
-          2,1,第一課,春夏秋冬
-        </div>
-        <div style="margin-bottom:12px">
-          <label style="font-size:.8rem;font-weight:800;color:var(--muted);display:block;margin-bottom:6px">選擇要匯入的版本</label>
-          <select id="csv-version-select"
-            style="width:100%;border:2px solid var(--border);border-radius:8px;padding:9px 12px;font-size:.92rem;font-family:inherit;outline:none;background:white;color:var(--text)">
-            <option value="">— 請先選擇版本 —</option>
-          </select>
+          <strong>CSV 格式（第一欄為版本名稱）：</strong><br>
+          版本,冊,課,課名,生字<br>
+          太平國小112學年,1,1,第一課,山水火土木<br>
+          太平國小112學年,1,2,第二課,日月星雲風<br>
+          太平國小112學年,2,1,第一課,春夏秋冬<br>
+          <span style="color:var(--blue)">✦ 上傳後系統會自動建立版本，不需要事先手動建立</span>
         </div>
         <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
           <label style="display:flex;align-items:center;gap:8px;padding:10px 18px;border:2px dashed var(--border);border-radius:10px;cursor:pointer;font-size:.88rem;font-weight:700;color:var(--gray);transition:all .15s"
@@ -1026,31 +1020,39 @@ function onCSVSelected() {
 }
 
 function parseCSV(text) {
-  var lines = text.split(/\r?\n/).filter(function(l){ return l.trim(); });
+  var lines = text.split('\n').filter(function(l){ return l.trim(); });
   if (!lines.length) { showToast('CSV 檔案是空的！'); return; }
 
-  // 跳過標題行
+  // 判斷是否有標題行（包含中文標題關鍵字）
   var start = 0;
-  if (lines[0].includes('冊') || lines[0].includes('課')) start = 1;
+  if (lines[0].includes('版本') || lines[0].includes('冊') || lines[0].includes('課')) start = 1;
 
-  var parsed = [];
-  var errors = [];
+  var parsed  = [];
+  var errors  = [];
+  var versionNames = {};  // 收集所有版本名稱
+
   lines.slice(start).forEach(function(line, idx) {
     var cols = line.split(',');
-    if (cols.length < 4) { errors.push('第 '+(idx+start+1)+' 行格式錯誤'); return; }
-    var bookNum   = parseInt(cols[0].trim());
-    var lessonNum = parseInt(cols[1].trim());
-    var name      = cols[2].trim();
-    var chars     = Array.from(new Set(cols[3].trim().replace(/\s/g,'').split('').filter(Boolean)));
-    if (isNaN(bookNum) || isNaN(lessonNum)) { errors.push('第 '+(idx+start+1)+' 行冊/課必須是數字'); return; }
-    if (!chars.length) { errors.push('第 '+(idx+start+1)+' 行生字不能是空的'); return; }
-    parsed.push({ bookNum: bookNum, lessonNum: lessonNum, name: name, chars: chars });
+    var lineNum = idx + start + 1;
+    if (cols.length < 5) { errors.push('第 '+lineNum+' 行需要 5 欄（版本,冊,課,課名,生字）'); return; }
+
+    var versionName = cols[0].trim();
+    var bookNum     = parseInt(cols[1].trim());
+    var lessonNum   = parseInt(cols[2].trim());
+    var name        = cols[3].trim();
+    var chars       = Array.from(new Set(cols[4].trim().replace(/ /g,'').split('').filter(Boolean)));
+
+    if (!versionName)                    { errors.push('第 '+lineNum+' 行版本名稱不能是空的'); return; }
+    if (isNaN(bookNum)||isNaN(lessonNum)){ errors.push('第 '+lineNum+' 行冊/課必須是數字'); return; }
+    if (!chars.length)                   { errors.push('第 '+lineNum+' 行生字不能是空的'); return; }
+
+    versionNames[versionName] = true;
+    parsed.push({ versionName:versionName, bookNum:bookNum, lessonNum:lessonNum, name:name, chars:chars });
   });
 
   csvParsedData = parsed;
-
-  // 預覽
   var preview = document.getElementById('csv-preview');
+
   if (errors.length) {
     preview.innerHTML = '<div style="color:var(--red);font-size:.82rem;font-weight:700;background:#fff5f5;border-radius:8px;padding:10px 12px">'
       +'⚠️ 發現以下問題：<br>'+errors.join('<br>')+'</div>';
@@ -1060,10 +1062,11 @@ function parseCSV(text) {
     return;
   }
 
+  var vList = Object.keys(versionNames);
   preview.innerHTML = '<div style="color:var(--green);font-size:.82rem;font-weight:700;background:var(--green-lt);border-radius:8px;padding:10px 12px">'
-    +'✅ 解析成功！共 '+parsed.length+' 課，'
-    +parsed.reduce(function(a,b){ return a+b.chars.length; },0)+' 個生字。<br>'
-    +'<span style="color:var(--muted)">請選擇版本後按「匯入」。</span>'
+    +'✅ 解析成功！版本：'+vList.join('、')+'<br>'
+    +'共 '+parsed.length+' 課，'+parsed.reduce(function(a,b){ return a+b.chars.length; },0)+' 個生字。<br>'
+    +'<span style="color:var(--muted)">按「匯入」後將自動建立版本並上傳資料。</span>'
     +'</div>';
 
   var btn = document.getElementById('btn-import-csv');
@@ -1072,10 +1075,8 @@ function parseCSV(text) {
   btn.style.cursor = 'pointer';
 }
 
-// ── CSV 匯入到 Firebase ──
+// ── CSV 匯入到 Firebase（自動建立版本） ──
 function importCSV() {
-  var versionId = document.getElementById('csv-version-select').value;
-  if (!versionId)      { showToast('請先選擇版本！'); return; }
   if (!csvParsedData || !csvParsedData.length) { showToast('請先選擇 CSV 檔案！'); return; }
   if (!db) return;
 
@@ -1083,39 +1084,51 @@ function importCSV() {
   btn.innerHTML = '<span>⏳</span><span>匯入中…</span>';
   btn.disabled = true;
 
-  // 批次寫入（每課一筆文件）
-  var batch   = db.batch();
-  var colRef  = db.collection('curriculum').doc(versionId).collection('lessons');
+  // 依版本名稱分組
+  var versionMap = {};
   csvParsedData.forEach(function(lesson) {
-    var docRef = colRef.doc('b'+lesson.bookNum+'_l'+lesson.lessonNum);
-    batch.set(docRef, {
-      bookNum:   lesson.bookNum,
-      lessonNum: lesson.lessonNum,
-      name:      lesson.name,
-      chars:     lesson.chars
+    if (!versionMap[lesson.versionName]) versionMap[lesson.versionName] = [];
+    versionMap[lesson.versionName].push(lesson);
+  });
+
+  var versionNames = Object.keys(versionMap);
+  var totalDone    = 0;
+
+  versionNames.forEach(function(vName) {
+    var lessons  = versionMap[vName];
+    var versionId = 'v_' + vName.replace(/ /g,'_') + '_' + Date.now();
+
+    // 先建立版本文件
+    db.collection('curriculum').doc(versionId).set({
+      name:        vName,
+      lessonCount: lessons.length,
+      createdAt:   firebase.firestore.FieldValue.serverTimestamp()
+    }).then(function() {
+      // 批次寫入課程
+      var batch  = db.batch();
+      var colRef = db.collection('curriculum').doc(versionId).collection('lessons');
+      lessons.forEach(function(lesson) {
+        var docRef = colRef.doc('b'+lesson.bookNum+'_l'+lesson.lessonNum);
+        batch.set(docRef, {
+          bookNum:   lesson.bookNum,
+          lessonNum: lesson.lessonNum,
+          name:      lesson.name,
+          chars:     lesson.chars
+        });
+      });
+      return batch.commit();
+    }).then(function() {
+      totalDone++;
+      if (totalDone === versionNames.length) {
+        showToast('✅ 匯入完成！共 '+versionNames.length+' 個版本，'+csvParsedData.length+' 課。');
+        btn.innerHTML = '<span>📥</span><span>匯入</span>';
+        csvParsedData = null;
+        document.getElementById('csv-file').value = '';
+        document.getElementById('csv-filename').textContent = '選擇 CSV 檔案';
+        document.getElementById('csv-preview').innerHTML = '';
+        loadVersions();
+      }
     });
-  });
-
-  // 更新版本的課數
-  batch.update(db.collection('curriculum').doc(versionId), {
-    lessonCount: csvParsedData.length
-  });
-
-  batch.commit().then(function() {
-    showToast('✅ 匯入完成！共 '+csvParsedData.length+' 課。');
-    btn.innerHTML = '<span>📥</span><span>匯入</span>';
-    csvParsedData = null;
-    document.getElementById('csv-file').value = '';
-    document.getElementById('csv-filename').textContent = '選擇 CSV 檔案';
-    document.getElementById('csv-preview').innerHTML = '';
-    loadVersions();
-    if (currentVersionId === versionId) {
-      browseVersion(versionId, currentVersionName);
-    }
-  }).catch(function(e) {
-    showToast('❌ 匯入失敗：'+e.message);
-    btn.innerHTML = '<span>📥</span><span>匯入</span>';
-    btn.disabled = false;
   });
 }
 
