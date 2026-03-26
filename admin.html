@@ -871,12 +871,14 @@ function loadVersions() {
       allVersions.push({ id: doc.id, name: doc.data().name, lessonCount: doc.data().lessonCount || 0 });
     });
 
-    // 更新版本選單（CSV 上傳用）
+    // 更新版本選單（CSV 上傳用，若元素存在才更新）
     var sel = document.getElementById('csv-version-select');
-    sel.innerHTML = '<option value="">— 請先選擇版本 —</option>'
-      + allVersions.map(function(v){
-          return '<option value="'+v.id+'">'+v.name+'</option>';
-        }).join('');
+    if (sel) {
+      sel.innerHTML = '<option value="">— 請先選擇版本 —</option>'
+        + allVersions.map(function(v){
+            return '<option value="'+v.id+'">'+v.name+'</option>';
+          }).join('');
+    }
 
     if (!allVersions.length) {
       wrap.innerHTML = '<div style="color:var(--muted);font-size:.88rem;font-weight:600;padding:8px 0">還沒有課程版本，請先建立。</div>';
@@ -898,7 +900,8 @@ function loadVersions() {
       wrap.appendChild(div);
     });
   }).catch(function(e) {
-    wrap.innerHTML = '<div style="color:var(--red);font-size:.88rem;font-weight:700">載入失敗：'+e.message+'<br><span style="font-size:.75rem;color:#666">請確認 Firestore 安全規則已允許 curriculum 集合讀取。</span></div>';
+    var wrap2 = document.getElementById('version-list-wrap');
+    if (wrap2) wrap2.innerHTML = '<div style="color:var(--red);font-size:.88rem;font-weight:700">載入失敗：'+e.message+'</div>';
     console.error('loadVersions error:', e);
   });
 }
