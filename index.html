@@ -6,8 +6,8 @@
 <title>太平國小國字學習系統</title>
 <script src="https://cdn.jsdelivr.net/npm/hanzi-writer@3.5/dist/hanzi-writer.min.js"></script>
 <!-- Firebase SDK -->
-<script defer src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-<script defer src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&family=Noto+Sans+TC:wght@400;500;700;900&family=Noto+Serif+TC:wght@400;700;900&display=swap');
 
@@ -1286,15 +1286,22 @@ var firebaseConfig = {
 var db = null;  // Firebase 載入後才初始化
 
 function initFirebase() {
-  if (typeof firebase === 'undefined') {
-    setTimeout(initFirebase, 100);
+  // 輪詢直到 firebase 全域物件與 firestore 方法都就緒
+  if (typeof firebase === 'undefined' || typeof firebase.firestore === 'undefined') {
+    setTimeout(initFirebase, 150);
     return;
   }
-  if (!firebase.apps.length) {
-    firebase.initializeApp(firebaseConfig);
+  try {
+    if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+    }
+    db = firebase.firestore();
+    console.log('Firebase ready ✓');
+  } catch(e) {
+    console.warn('Firebase init error, retrying...', e);
+    db = null;
+    setTimeout(initFirebase, 300);
   }
-  db = firebase.firestore();
-  console.log('Firebase ready');
 }
 
 // ═══════════════════════════════════════
@@ -1346,10 +1353,12 @@ function doLogin() {
   errEl.textContent = '';
 
   if (!db) {
-    errEl.textContent = '系統初始化中，請稍候再試。';
+    errEl.textContent = '系統連線中，請稍候…';
     errEl.classList.add('show');
+    setTimeout(function(){ doLogin(); }, 800);
     return;
   }
+  errEl.classList.remove('show');
 
   var id = name + '_' + loginPin;
   // 先確認學生存在，再讀取漢字進度
@@ -1456,11 +1465,14 @@ function doRegister() {
   if (!name)           { errEl.textContent='請輸入姓名。'; errEl.classList.add('show'); return; }
   if (regPin.length<4) { errEl.textContent='請輸入完整的 4 位 PIN 碼。'; errEl.classList.add('show'); return; }
 
+  // 如果 db 還沒就緒，等待後重試
   if (!db) {
-    errEl.textContent = '系統初始化中，請稍候再試。';
+    errEl.textContent = '系統連線中，請稍候…';
     errEl.classList.add('show');
+    setTimeout(function(){ doRegister(); }, 800);
     return;
   }
+  errEl.classList.remove('show');
 
   var id = name + '_' + regPin;
   db.collection('students').doc(id).get().then(function(doc) {
@@ -2672,8 +2684,13 @@ function waitHW(cb) {
   else setTimeout(function(){ waitHW(cb); },100);
 }
 window.addEventListener('load', function(){
-  initFirebase();   // Firebase 初始化
+  initFirebase();        // Firebase 初始化（會自動輪詢直到就緒）
   waitHW(function(){});  // HanziWriter 初始化
+});
+
+// 也在 DOMContentLoaded 時嘗試初始化（雙保險）
+document.addEventListener('DOMContentLoaded', function(){
+  initFirebase();
 });
 </script>
 </body>
