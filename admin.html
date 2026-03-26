@@ -799,6 +799,7 @@ function loadCurrentLesson() {
   if (!db) { setTimeout(loadCurrentLesson, 500); return; }
   db.collection('settings').doc('lesson').get().then(function(doc) {
     var el = document.getElementById('current-lesson-display');
+    if (!el) return;  // 面板尚未顯示，略過
     if (doc.exists && doc.data().chars && doc.data().chars.length) {
       var chars   = doc.data().chars;
       var updated = doc.data().updatedAt
@@ -861,6 +862,7 @@ var csvParsedData      = null;
 function loadVersions() {
   if (!db) { setTimeout(loadVersions, 500); return; }
   var wrap = document.getElementById('version-list-wrap');
+  if (!wrap) return;  // 面板尚未顯示，略過
   wrap.innerHTML = '<div class="loading-wrap"><div class="spinner"></div></div>';
 
   db.collection('curriculum').get().then(function(snap) {
