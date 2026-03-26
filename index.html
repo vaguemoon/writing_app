@@ -614,6 +614,42 @@ body {
 
 @keyframes sparkle { 0%,100%{transform:scale(1)} 50%{transform:scale(1.3)} }
 
+/* ══ 首頁課程選擇 ══ */
+.home-mode-row {
+  display:flex; gap:12px; margin:0 18px 16px; flex-wrap:wrap;
+}
+.home-mode-btn {
+  flex:1; min-width:130px;
+  background:white; border:2.5px solid var(--border);
+  border-radius:var(--radius); padding:16px 12px;
+  display:flex; flex-direction:column; align-items:center; gap:5px;
+  cursor:pointer; transition:all .18s; font-family:inherit;
+}
+.home-mode-btn:active { transform:scale(.96); }
+.home-mode-btn-active {
+  border-color:var(--blue); background:var(--blue-lt);
+  box-shadow:0 0 0 3px rgba(74,144,217,.15);
+}
+.home-mode-icon  { font-size:1.8rem; }
+.home-mode-title { font-size:.95rem; font-weight:900; color:var(--text); }
+.home-mode-sub   { font-size:.72rem; font-weight:600; color:var(--muted); }
+
+.curriculum-select {
+  width:100%; border:2px solid #d4e8f8; border-radius:10px;
+  padding:11px 14px; font-size:.95rem; font-family:'Noto Sans TC',sans-serif;
+  outline:none; background:white; color:var(--text);
+  transition:border-color .2s;
+}
+.curriculum-select:focus { border-color:var(--blue); }
+
+.lesson-chars-chip {
+  display:inline-flex; align-items:center; gap:4px;
+  background:var(--blue-lt); border:1.5px solid #bfdbfe;
+  border-radius:8px; padding:5px 12px;
+  font-size:1.1rem; font-family:'Noto Serif TC',serif;
+  font-weight:900; letter-spacing:4px; color:var(--text);
+}
+
 /* 教師入口 input placeholder */
 #teacher-pwd::placeholder { color:rgba(255,255,255,.45); }
 #teacher-pwd:focus { border-color:rgba(255,255,255,.7) !important; }
@@ -980,11 +1016,47 @@ body {
     <div class="home-school">臺東縣太平國小</div>
     <div class="home-title">國字<span>學習</span>系統</div>
   </div>
-  <div class="home-card">
+  <!-- 選擇課程或自由輸入 -->
+  <div class="home-mode-row">
+    <button class="home-mode-btn home-mode-btn-active" id="hm-curriculum" onclick="switchHomeMode('curriculum')">
+      <span class="home-mode-icon">📚</span>
+      <span class="home-mode-title">選擇課程</span>
+      <span class="home-mode-sub">從課本選課文</span>
+    </button>
+    <button class="home-mode-btn" id="hm-free" onclick="switchHomeMode('free')">
+      <span class="home-mode-icon">✏️</span>
+      <span class="home-mode-title">自由練習</span>
+      <span class="home-mode-sub">老師指定生字</span>
+    </button>
+  </div>
+
+  <!-- 選擇課程 -->
+  <div class="home-card" id="home-panel-curriculum">
+    <div class="home-card-label">📚 選擇今天的課程</div>
+    <div style="margin-bottom:10px">
+      <select class="curriculum-select" id="sel-version" onchange="onVersionChange()">
+        <option value="">— 載入中 —</option>
+      </select>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:10px">
+      <select class="curriculum-select" id="sel-book" onchange="onBookChange()" style="flex:1">
+        <option value="">— 選擇冊 —</option>
+      </select>
+      <select class="curriculum-select" id="sel-lesson" onchange="onLessonChange()" style="flex:2">
+        <option value="">— 選擇課 —</option>
+      </select>
+    </div>
+    <div id="lesson-chars-preview" style="min-height:36px;margin-bottom:10px"></div>
+    <button class="btn-start" id="btn-start-curriculum" onclick="startCurriculumLesson()" disabled
+      style="opacity:.5;cursor:not-allowed">開始上課 →</button>
+  </div>
+
+  <!-- 自由輸入 -->
+  <div class="home-card" id="home-panel-free" style="display:none">
     <div class="home-card-label">📝 請輸入今天要學的字</div>
     <div class="char-input-row">
       <input class="char-input" id="char-input" type="text"
-        placeholder="例如：山水火土木" maxlength="20" value="臺東縣太平國小">
+        placeholder="例如：山水火土木" maxlength="20" value="">
       <button class="btn-start" onclick="startLesson()">開始上課 →</button>
     </div>
     <div class="home-tip">💡 直接輸入漢字，最多 20 個字，按「開始上課」進入學習。</div>
@@ -1441,6 +1513,8 @@ function onLoginSuccess(student, data) {
       showToast('👋 歡迎回來，' + student.name + '！');
     }
     goTo('home');
+    // 登入後預載課程版本
+    setTimeout(loadCurriculumVersions, 800);
   });
 }
 
@@ -1757,8 +1831,120 @@ function goTo(name) {
 }
 
 // ═══════════════════════════════════════
-//  畫面一
+//  畫面一：首頁
 // ═══════════════════════════════════════
+var curriculumData = {};  // { versionId: { bookNum: [ lessonData ] } }
+
+// 切換首頁模式（課程 / 自由輸入）
+function switchHomeMode(mode) {
+  var isCurriculum = mode === 'curriculum';
+  document.getElementById('home-panel-curriculum').style.display = isCurriculum ? '' : 'none';
+  document.getElementById('home-panel-free').style.display       = isCurriculum ? 'none' : '';
+  document.getElementById('hm-curriculum').classList.toggle('home-mode-btn-active', isCurriculum);
+  document.getElementById('hm-free').classList.toggle('home-mode-btn-active', !isCurriculum);
+  if (isCurriculum) loadCurriculumVersions();
+}
+
+// 載入版本選單
+function loadCurriculumVersions() {
+  if (!db) { setTimeout(loadCurriculumVersions, 400); return; }
+  var sel = document.getElementById('sel-version');
+  sel.innerHTML = '<option value="">載入中…</option>';
+  db.collection('curriculum').get().then(function(snap) {
+    if (snap.empty) {
+      sel.innerHTML = '<option value="">（教師尚未建立課程）</option>';
+      return;
+    }
+    sel.innerHTML = '<option value="">— 請選擇版本 —</option>';
+    snap.forEach(function(doc) {
+      var opt = document.createElement('option');
+      opt.value = doc.id;
+      opt.textContent = doc.data().name;
+      sel.appendChild(opt);
+    });
+  });
+}
+
+// 版本選擇後載入冊別
+function onVersionChange() {
+  var versionId = document.getElementById('sel-version').value;
+  var selBook   = document.getElementById('sel-book');
+  var selLesson = document.getElementById('sel-lesson');
+  selBook.innerHTML   = '<option value="">— 選擇冊 —</option>';
+  selLesson.innerHTML = '<option value="">— 選擇課 —</option>';
+  document.getElementById('lesson-chars-preview').innerHTML = '';
+  disableStartBtn();
+  if (!versionId || !db) return;
+
+  db.collection('curriculum').doc(versionId)
+    .collection('lessons').orderBy('bookNum').orderBy('lessonNum')
+    .get().then(function(snap) {
+      curriculumData = {};
+      snap.forEach(function(doc) {
+        var d = doc.data();
+        if (!curriculumData[d.bookNum]) curriculumData[d.bookNum] = [];
+        curriculumData[d.bookNum].push(d);
+      });
+      var books = Object.keys(curriculumData).sort(function(a,b){ return a-b; });
+      books.forEach(function(bk) {
+        var opt = document.createElement('option');
+        opt.value = bk;
+        opt.textContent = '第 ' + bk + ' 冊';
+        selBook.appendChild(opt);
+      });
+    });
+}
+
+// 冊別選擇後載入課次
+function onBookChange() {
+  var bookNum   = document.getElementById('sel-book').value;
+  var selLesson = document.getElementById('sel-lesson');
+  selLesson.innerHTML = '<option value="">— 選擇課 —</option>';
+  document.getElementById('lesson-chars-preview').innerHTML = '';
+  disableStartBtn();
+  if (!bookNum) return;
+  var lessons = curriculumData[bookNum] || [];
+  lessons.forEach(function(l) {
+    var opt = document.createElement('option');
+    opt.value = l.lessonNum;
+    opt.textContent = '第 ' + l.lessonNum + ' 課　' + l.name;
+    opt.setAttribute('data-chars', l.chars.join(''));
+    selLesson.appendChild(opt);
+  });
+}
+
+// 課次選擇後顯示生字預覽
+function onLessonChange() {
+  var sel    = document.getElementById('sel-lesson');
+  var option = sel.options[sel.selectedIndex];
+  var chars  = option && option.getAttribute('data-chars');
+  var prev   = document.getElementById('lesson-chars-preview');
+  if (!chars) { prev.innerHTML = ''; disableStartBtn(); return; }
+  prev.innerHTML = '<div class="lesson-chars-chip">' + chars + '</div>';
+  enableStartBtn();
+}
+
+function disableStartBtn() {
+  var btn = document.getElementById('btn-start-curriculum');
+  if (btn) { btn.disabled = true; btn.style.opacity = '.5'; btn.style.cursor = 'not-allowed'; }
+}
+function enableStartBtn() {
+  var btn = document.getElementById('btn-start-curriculum');
+  if (btn) { btn.disabled = false; btn.style.opacity = '1'; btn.style.cursor = 'pointer'; }
+}
+
+// 開始課程學習
+function startCurriculumLesson() {
+  var sel    = document.getElementById('sel-lesson');
+  var option = sel.options[sel.selectedIndex];
+  var chars  = option && option.getAttribute('data-chars');
+  if (!chars) return;
+  // 把選到的生字放入 char-input，然後呼叫 startLesson
+  var input = document.getElementById('char-input');
+  if (input) input.value = chars;
+  startLesson();
+}
+
 function startLesson() {
   var raw  = document.getElementById('char-input').value.trim();
   var list = Array.from(new Set(raw.replace(/\s/g,'').split('').filter(function(c){ return c; })));

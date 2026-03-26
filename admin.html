@@ -243,6 +243,40 @@ body {
 .char-status-item:hover { transform:scale(1.06); }
 .char-status-item.selecting { outline:3px solid var(--blue); outline-offset:2px; }
 
+/* 課程管理 */
+.version-item {
+  display:flex; align-items:center; gap:10px; padding:10px 12px;
+  border-radius:10px; border:1.5px solid var(--border);
+  margin-bottom:8px; cursor:pointer; transition:all .15s;
+  background:white;
+}
+.version-item:hover { border-color:var(--blue); background:var(--blue-lt); }
+.version-item.active { border-color:var(--blue); background:var(--blue-lt); }
+.version-name { font-size:.92rem; font-weight:800; color:var(--text); flex:1; }
+.version-meta { font-size:.75rem; color:var(--muted); font-weight:600; }
+
+.book-section { margin-bottom:16px; }
+.book-title {
+  font-size:.88rem; font-weight:900; color:var(--blue-dk);
+  background:var(--blue-lt); border-radius:8px; padding:7px 12px;
+  margin-bottom:8px;
+}
+.lesson-item {
+  display:flex; align-items:center; gap:10px; padding:8px 12px;
+  border-radius:8px; border:1px solid var(--border); margin-bottom:6px;
+  background:white; font-size:.85rem;
+}
+.lesson-num  { font-weight:900; color:var(--blue-dk); min-width:50px; }
+.lesson-name { font-weight:700; color:var(--gray); min-width:60px; }
+.lesson-chars{ font-size:.95rem; font-family:'Noto Sans TC',serif; font-weight:700; letter-spacing:3px; flex:1; }
+.lesson-actions { display:flex; gap:6px; }
+.btn-tiny {
+  padding:3px 8px; border-radius:6px; border:1px solid var(--border);
+  background:white; font-size:.72rem; font-weight:700; cursor:pointer;
+  font-family:inherit; color:var(--gray); transition:all .15s;
+}
+.btn-tiny:hover { border-color:var(--red); color:var(--red); }
+
 /* 載入動畫 */
 .spinner {
   width:28px; height:28px; border-radius:50%;
@@ -288,8 +322,9 @@ body {
 
     <!-- 分頁 -->
     <div class="admin-tabs">
-      <button class="admin-tab active" id="tab-overview" onclick="switchTab('overview')">📊 班級總覽</button>
-      <button class="admin-tab" id="tab-lesson"   onclick="switchTab('lesson')">📝 設定生字</button>
+      <button class="admin-tab active" id="tab-overview"    onclick="switchTab('overview')">📊 班級總覽</button>
+      <button class="admin-tab"        id="tab-lesson"     onclick="switchTab('lesson')">📝 設定生字</button>
+      <button class="admin-tab"        id="tab-curriculum" onclick="switchTab('curriculum')">📚 課程管理</button>
     </div>
 
     <!-- 班級總覽 -->
@@ -352,6 +387,71 @@ body {
           </button>
           <span style="font-size:.8rem;color:var(--muted);font-weight:600">儲存後所有學生下次登入會自動載入這組生字</span>
         </div>
+      </div>
+    </div>
+
+    <!-- 課程管理 -->
+    <div id="panel-curriculum" style="display:none">
+
+      <!-- 版本選擇 -->
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-title">📚 課程版本
+          <button class="btn-edit" style="margin-left:auto" onclick="showAddVersion()">＋ 新增版本</button>
+        </div>
+        <div id="version-list-wrap">
+          <div class="loading-wrap"><div class="spinner"></div></div>
+        </div>
+        <!-- 新增版本表單 -->
+        <div id="add-version-form" style="display:none;margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <input id="new-version-name" type="text" placeholder="例如：太平國小112學年"
+              style="flex:1;border:2px solid var(--border);border-radius:8px;padding:9px 12px;font-size:.92rem;font-family:inherit;outline:none;min-width:180px">
+            <button class="btn-save-lesson" style="padding:9px 18px" onclick="addVersion()">
+              <span>＋</span><span>建立</span>
+            </button>
+            <button class="btn-edit" onclick="hideAddVersion()">取消</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- CSV 上傳 -->
+      <div class="card" style="margin-bottom:16px" id="csv-upload-card">
+        <div class="card-title">📥 批次匯入課程（CSV）</div>
+        <div style="background:#f8fafc;border-radius:10px;padding:14px;margin-bottom:14px;font-size:.82rem;font-weight:600;color:var(--gray);line-height:1.8">
+          <strong>CSV 格式範例：</strong><br>
+          冊,課,課名,生字<br>
+          1,1,第一課,山水火土木<br>
+          1,2,第二課,日月星雲風<br>
+          2,1,第一課,春夏秋冬
+        </div>
+        <div style="margin-bottom:12px">
+          <label style="font-size:.8rem;font-weight:800;color:var(--muted);display:block;margin-bottom:6px">選擇要匯入的版本</label>
+          <select id="csv-version-select"
+            style="width:100%;border:2px solid var(--border);border-radius:8px;padding:9px 12px;font-size:.92rem;font-family:inherit;outline:none;background:white;color:var(--text)">
+            <option value="">— 請先選擇版本 —</option>
+          </select>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+          <label style="display:flex;align-items:center;gap:8px;padding:10px 18px;border:2px dashed var(--border);border-radius:10px;cursor:pointer;font-size:.88rem;font-weight:700;color:var(--gray);transition:all .15s"
+            id="csv-label" onmouseover="this.style.borderColor='var(--blue)'" onmouseout="this.style.borderColor='var(--border)'">
+            <span>📎</span><span id="csv-filename">選擇 CSV 檔案</span>
+            <input type="file" accept=".csv" id="csv-file" style="display:none" onchange="onCSVSelected()">
+          </label>
+          <button class="btn-save-lesson" onclick="importCSV()" id="btn-import-csv" disabled
+            style="opacity:.5;cursor:not-allowed">
+            <span>📥</span><span>匯入</span>
+          </button>
+        </div>
+        <div id="csv-preview" style="margin-top:12px"></div>
+      </div>
+
+      <!-- 課程內容瀏覽 -->
+      <div class="card" id="curriculum-browse-card" style="display:none">
+        <div class="card-title">
+          <span id="browse-version-name">課程內容</span>
+          <button class="btn-danger" style="margin-left:auto;font-size:.75rem;padding:4px 10px" onclick="deleteVersion()">🗑 刪除此版本</button>
+        </div>
+        <div id="curriculum-content"></div>
       </div>
     </div>
 
@@ -440,13 +540,14 @@ function doLogout() {
 
 // ══ 分頁切換 ══
 function switchTab(tab) {
-  ['overview','lesson'].forEach(function(t) {
+  ['overview','lesson','curriculum'].forEach(function(t) {
     document.getElementById('panel-'+t).style.display = t===tab ? '' : 'none';
     document.getElementById('tab-'+t).classList.toggle('active', t===tab);
   });
   document.getElementById('panel-student').style.display = 'none';
-  if (tab === 'overview') loadStudents();
-  if (tab === 'lesson')   loadCurrentLesson();
+  if (tab === 'overview')   loadStudents();
+  if (tab === 'lesson')     loadCurrentLesson();
+  if (tab === 'curriculum') loadVersions();
 }
 
 // ══ 載入學生列表 ══
@@ -690,6 +791,259 @@ function saveLesson() {
       '<span class="lesson-empty">輸入文字後這裡會顯示預覽</span>';
   }).catch(function(e) {
     showToast('❌ 儲存失敗：'+e.message);
+  });
+}
+
+// ═══════════════════════════════════════
+//  課程管理
+// ═══════════════════════════════════════
+var currentVersionId   = null;
+var currentVersionName = '';
+var allVersions        = [];
+var csvParsedData      = null;
+
+// ── 載入所有版本 ──
+function loadVersions() {
+  if (!db) { setTimeout(loadVersions, 500); return; }
+  var wrap = document.getElementById('version-list-wrap');
+  wrap.innerHTML = '<div class="loading-wrap"><div class="spinner"></div></div>';
+
+  db.collection('curriculum').get().then(function(snap) {
+    allVersions = [];
+    snap.forEach(function(doc) {
+      allVersions.push({ id: doc.id, name: doc.data().name, lessonCount: doc.data().lessonCount || 0 });
+    });
+
+    // 更新版本選單（CSV 上傳用）
+    var sel = document.getElementById('csv-version-select');
+    sel.innerHTML = '<option value="">— 請先選擇版本 —</option>'
+      + allVersions.map(function(v){
+          return '<option value="'+v.id+'">'+v.name+'</option>';
+        }).join('');
+
+    if (!allVersions.length) {
+      wrap.innerHTML = '<div style="color:var(--muted);font-size:.88rem;font-weight:600;padding:8px 0">還沒有課程版本，請先建立。</div>';
+      return;
+    }
+
+    wrap.innerHTML = allVersions.map(function(v) {
+      return '<div class="version-item" id="vi-'+v.id+'" onclick="browseVersion(''+v.id+'',''+v.name.replace(/'/g,"\'")+'')">'
+        +'<div class="version-name">📚 '+v.name+'</div>'
+        +'<div class="version-meta">'+v.lessonCount+' 課</div>'
+        +'<div style="font-size:.8rem;color:var(--blue);font-weight:700">查看 →</div>'
+        +'</div>';
+    }).join('');
+  }).catch(function(e) {
+    wrap.innerHTML = '<div style="color:var(--red);font-size:.88rem">載入失敗。</div>';
+  });
+}
+
+// ── 新增版本 ──
+function showAddVersion() {
+  document.getElementById('add-version-form').style.display = '';
+  document.getElementById('new-version-name').focus();
+}
+function hideAddVersion() {
+  document.getElementById('add-version-form').style.display = 'none';
+  document.getElementById('new-version-name').value = '';
+}
+function addVersion() {
+  var name = document.getElementById('new-version-name').value.trim();
+  if (!name) { showToast('請輸入版本名稱！'); return; }
+  if (!db) return;
+  var id = 'v_' + Date.now();
+  db.collection('curriculum').doc(id).set({
+    name: name, lessonCount: 0, createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  }).then(function() {
+    showToast('✅ 版本「'+name+'」已建立！');
+    hideAddVersion();
+    loadVersions();
+  }).catch(function(e){ showToast('❌ 建立失敗：'+e.message); });
+}
+
+// ── 刪除版本 ──
+function deleteVersion() {
+  if (!currentVersionId) return;
+  if (!confirm('確定要刪除「'+currentVersionName+'」的所有課程資料嗎？
+
+此操作無法復原！')) return;
+  db.collection('curriculum').doc(currentVersionId).delete().then(function() {
+    showToast('🗑 已刪除「'+currentVersionName+'」。');
+    currentVersionId = null;
+    document.getElementById('curriculum-browse-card').style.display = 'none';
+    loadVersions();
+  }).catch(function(e){ showToast('❌ 刪除失敗：'+e.message); });
+}
+
+// ── 瀏覽版本課程內容 ──
+function browseVersion(versionId, versionName) {
+  if (!db) return;
+  currentVersionId   = versionId;
+  currentVersionName = versionName;
+
+  // 更新選中樣式
+  document.querySelectorAll('.version-item').forEach(function(el){ el.classList.remove('active'); });
+  var vi = document.getElementById('vi-'+versionId);
+  if (vi) vi.classList.add('active');
+
+  document.getElementById('browse-version-name').textContent = '📚 ' + versionName;
+  var card = document.getElementById('curriculum-browse-card');
+  card.style.display = '';
+  document.getElementById('curriculum-content').innerHTML =
+    '<div class="loading-wrap"><div class="spinner"></div></div>';
+
+  db.collection('curriculum').doc(versionId)
+    .collection('lessons').orderBy('bookNum').orderBy('lessonNum')
+    .get().then(function(snap) {
+      if (snap.empty) {
+        document.getElementById('curriculum-content').innerHTML =
+          '<div style="color:var(--muted);font-size:.88rem;font-weight:600;padding:8px 0">這個版本還沒有課程，請上傳 CSV 匯入。</div>';
+        return;
+      }
+
+      // 依冊分組
+      var books = {};
+      snap.forEach(function(doc) {
+        var d = doc.data();
+        if (!books[d.bookNum]) books[d.bookNum] = [];
+        var entry = Object.assign({ id: doc.id }, d); books[d.bookNum].push(entry);
+      });
+
+      var html = '';
+      Object.keys(books).sort(function(a,b){ return a-b; }).forEach(function(bk) {
+        html += '<div class="book-section">'
+          +'<div class="book-title">第 '+bk+' 冊</div>';
+        books[bk].forEach(function(lesson) {
+          html += '<div class="lesson-item">'
+            +'<div class="lesson-num">第'+lesson.lessonNum+'課</div>'
+            +'<div class="lesson-name">'+lesson.name+'</div>'
+            +'<div class="lesson-chars">'+lesson.chars.join('')+'</div>'
+            +'<div class="lesson-actions">'
+            +'<button class="btn-tiny" onclick="deleteLesson(''+versionId+'',''+lesson.id+'')">🗑</button>'
+            +'</div></div>';
+        });
+        html += '</div>';
+      });
+      document.getElementById('curriculum-content').innerHTML = html;
+    });
+}
+
+// ── 刪除單一課 ──
+function deleteLesson(versionId, lessonId) {
+  if (!confirm('確定要刪除這一課嗎？')) return;
+  db.collection('curriculum').doc(versionId)
+    .collection('lessons').doc(lessonId).delete()
+    .then(function() {
+      showToast('🗑 已刪除。');
+      browseVersion(versionId, currentVersionName);
+    });
+}
+
+// ── CSV 選擇 ──
+function onCSVSelected() {
+  var file = document.getElementById('csv-file').files[0];
+  if (!file) return;
+  document.getElementById('csv-filename').textContent = file.name;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    parseCSV(e.target.result);
+  };
+  reader.readAsText(file, 'UTF-8');
+}
+
+function parseCSV(text) {
+  var lines = text.split(/
+?
+/).filter(function(l){ return l.trim(); });
+  if (!lines.length) { showToast('CSV 檔案是空的！'); return; }
+
+  // 跳過標題行
+  var start = 0;
+  if (lines[0].includes('冊') || lines[0].includes('課')) start = 1;
+
+  var parsed = [];
+  var errors = [];
+  lines.slice(start).forEach(function(line, idx) {
+    var cols = line.split(',');
+    if (cols.length < 4) { errors.push('第 '+(idx+start+1)+' 行格式錯誤'); return; }
+    var bookNum   = parseInt(cols[0].trim());
+    var lessonNum = parseInt(cols[1].trim());
+    var name      = cols[2].trim();
+    var chars     = Array.from(new Set(cols[3].trim().replace(/\s/g,'').split('').filter(Boolean)));
+    if (isNaN(bookNum) || isNaN(lessonNum)) { errors.push('第 '+(idx+start+1)+' 行冊/課必須是數字'); return; }
+    if (!chars.length) { errors.push('第 '+(idx+start+1)+' 行生字不能是空的'); return; }
+    parsed.push({ bookNum: bookNum, lessonNum: lessonNum, name: name, chars: chars });
+  });
+
+  csvParsedData = parsed;
+
+  // 預覽
+  var preview = document.getElementById('csv-preview');
+  if (errors.length) {
+    preview.innerHTML = '<div style="color:var(--red);font-size:.82rem;font-weight:700;background:#fff5f5;border-radius:8px;padding:10px 12px">'
+      +'⚠️ 發現以下問題：<br>'+errors.join('<br>')+'</div>';
+    document.getElementById('btn-import-csv').disabled = true;
+    document.getElementById('btn-import-csv').style.opacity = '.5';
+    document.getElementById('btn-import-csv').style.cursor = 'not-allowed';
+    return;
+  }
+
+  preview.innerHTML = '<div style="color:var(--green);font-size:.82rem;font-weight:700;background:var(--green-lt);border-radius:8px;padding:10px 12px">'
+    +'✅ 解析成功！共 '+parsed.length+' 課，'
+    +parsed.reduce(function(a,b){ return a+b.chars.length; },0)+' 個生字。<br>'
+    +'<span style="color:var(--muted)">請選擇版本後按「匯入」。</span>'
+    +'</div>';
+
+  var btn = document.getElementById('btn-import-csv');
+  btn.disabled = false;
+  btn.style.opacity = '1';
+  btn.style.cursor = 'pointer';
+}
+
+// ── CSV 匯入到 Firebase ──
+function importCSV() {
+  var versionId = document.getElementById('csv-version-select').value;
+  if (!versionId)      { showToast('請先選擇版本！'); return; }
+  if (!csvParsedData || !csvParsedData.length) { showToast('請先選擇 CSV 檔案！'); return; }
+  if (!db) return;
+
+  var btn = document.getElementById('btn-import-csv');
+  btn.innerHTML = '<span>⏳</span><span>匯入中…</span>';
+  btn.disabled = true;
+
+  // 批次寫入（每課一筆文件）
+  var batch   = db.batch();
+  var colRef  = db.collection('curriculum').doc(versionId).collection('lessons');
+  csvParsedData.forEach(function(lesson) {
+    var docRef = colRef.doc('b'+lesson.bookNum+'_l'+lesson.lessonNum);
+    batch.set(docRef, {
+      bookNum:   lesson.bookNum,
+      lessonNum: lesson.lessonNum,
+      name:      lesson.name,
+      chars:     lesson.chars
+    });
+  });
+
+  // 更新版本的課數
+  batch.update(db.collection('curriculum').doc(versionId), {
+    lessonCount: csvParsedData.length
+  });
+
+  batch.commit().then(function() {
+    showToast('✅ 匯入完成！共 '+csvParsedData.length+' 課。');
+    btn.innerHTML = '<span>📥</span><span>匯入</span>';
+    csvParsedData = null;
+    document.getElementById('csv-file').value = '';
+    document.getElementById('csv-filename').textContent = '選擇 CSV 檔案';
+    document.getElementById('csv-preview').innerHTML = '';
+    loadVersions();
+    if (currentVersionId === versionId) {
+      browseVersion(versionId, currentVersionName);
+    }
+  }).catch(function(e) {
+    showToast('❌ 匯入失敗：'+e.message);
+    btn.innerHTML = '<span>📥</span><span>匯入</span>';
+    btn.disabled = false;
   });
 }
 
