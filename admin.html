@@ -220,6 +220,29 @@ body {
 .char-status-item.practiced .char-lbl { color:var(--yellow); }
 .char-status-item.new       .char-lbl { color:var(--muted); }
 
+/* 編輯按鈕 */
+.btn-edit {
+  padding:6px 14px; border-radius:8px; border:1.5px solid var(--border);
+  background:white; font-size:.8rem; font-weight:700; cursor:pointer;
+  font-family:inherit; transition:all .15s; color:var(--gray);
+}
+.btn-edit:hover { border-color:var(--blue); color:var(--blue); }
+.btn-danger {
+  padding:6px 14px; border-radius:8px; border:1.5px solid #fecaca;
+  background:#fff5f5; font-size:.8rem; font-weight:700; cursor:pointer;
+  font-family:inherit; color:var(--red); transition:all .15s;
+}
+.btn-danger:hover { background:#fee2e2; }
+.pin-display-box {
+  display:inline-flex; align-items:center; gap:8px;
+  background:var(--blue-lt); border-radius:8px; padding:6px 14px;
+  font-size:1rem; font-weight:900; color:var(--blue-dk);
+  letter-spacing:3px; border:1.5px solid #bfdbfe;
+}
+.char-status-item { cursor:pointer; transition:all .15s; }
+.char-status-item:hover { transform:scale(1.06); }
+.char-status-item.selecting { outline:3px solid var(--blue); outline-offset:2px; }
+
 /* 載入動畫 */
 .spinner {
   width:28px; height:28px; border-radius:50%;
@@ -341,9 +364,26 @@ body {
           <div class="name" id="detail-name"></div>
           <div class="sub" id="detail-sub"></div>
         </div>
+        <div style="margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <button class="btn-danger" onclick="deleteStudent()">🗑 刪除學生</button>
+        </div>
       </div>
+
+      <!-- PIN 碼查詢 -->
+      <div class="card" style="margin-bottom:14px">
+        <div class="card-title">🔐 PIN 碼查詢</div>
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+          <span style="font-size:.88rem;font-weight:700;color:var(--gray)">學生的 PIN 碼：</span>
+          <div class="pin-display-box" id="detail-pin">—</div>
+          <span style="font-size:.8rem;color:var(--muted);font-weight:600">（可告知學生讓他登入）</span>
+        </div>
+      </div>
+
       <div class="card">
-        <div class="card-title">📚 學習狀態</div>
+        <div class="card-title">📚 學習狀態
+          <span style="font-size:.75rem;color:var(--muted);font-weight:600;margin-left:6px">點擊字卡可切換狀態</span>
+          <button class="btn-edit" style="margin-left:auto" onclick="saveCharStatus()">💾 儲存變更</button>
+        </div>
         <div style="display:flex;gap:12px;margin-bottom:14px;flex-wrap:wrap">
           <span class="badge badge-green">✓ 已掌握</span>
           <span class="badge badge-yellow">◎ 練習中</span>
@@ -512,19 +552,22 @@ function renderStudentList(students) {
 // ══ 學生詳細頁 ══
 var allStudentsCache = [];
 
+var currentDetailId = null;
+var currentDetailCS = {};
+
 function showStudentDetail(studentId) {
   if (!db) return;
+  currentDetailId = studentId;
   document.getElementById('panel-overview').style.display = 'none';
   document.getElementById('panel-student').style.display  = '';
 
   db.collection('students').doc(studentId).get().then(function(doc) {
     var data = doc.data();
     var name = data.name || studentId;
-    var initial = name.charAt(0);
-
-    document.getElementById('detail-avatar').textContent = initial;
+    var pin  = data.pin  || '—';
+    document.getElementById('detail-avatar').textContent = name.charAt(0);
     document.getElementById('detail-name').textContent   = name;
-
+    document.getElementById('detail-pin').textContent    = pin;
     return db.collection('students').doc(studentId)
       .collection('progress').doc('hanzi').get();
   }).then(function(pd) {
@@ -532,28 +575,62 @@ function showStudentDetail(studentId) {
     var lastSeen = pd.exists && pd.data().lastSeen
       ? new Date(pd.data().lastSeen.seconds*1000).toLocaleString('zh-TW')
       : '尚未使用';
-
-    document.getElementById('detail-sub').textContent = '最後登入：'+lastSeen;
-
     var chars    = Object.keys(cs);
     var mastered = chars.filter(function(c){ return cs[c]==='mastered'; }).length;
     document.getElementById('detail-sub').textContent =
       '最後登入：'+lastSeen+'　｜　已掌握 '+mastered+' / '+chars.length+' 個字';
-
+    currentDetailCS = JSON.parse(JSON.stringify(cs));
     if (!chars.length) {
       document.getElementById('detail-chars').innerHTML =
         '<div style="color:var(--muted);font-size:.88rem;font-weight:600;padding:12px 0">這位學生還沒有學習紀錄。</div>';
       return;
     }
-
-    document.getElementById('detail-chars').innerHTML = chars.map(function(c) {
-      var st  = cs[c] || 'new';
-      var lbl = {mastered:'已掌握', practiced:'練習中', new:'未學習'}[st] || st;
-      return '<div class="char-status-item '+st+'">'
-        +'<div class="char-glyph">'+c+'</div>'
-        +'<div class="char-lbl">'+lbl+'</div></div>';
-    }).join('');
+    renderDetailChars();
   });
+}
+
+function renderDetailChars() {
+  var order = ['mastered','practiced','new'];
+  var chars = Object.keys(currentDetailCS).sort(function(a,b){
+    return order.indexOf(currentDetailCS[a]||'new') - order.indexOf(currentDetailCS[b]||'new');
+  });
+  document.getElementById('detail-chars').innerHTML = chars.map(function(c) {
+    var st  = currentDetailCS[c] || 'new';
+    var lbl = {mastered:'已掌握', practiced:'練習中', new:'未學習'}[st];
+    return '<div class="char-status-item '+st+'" onclick="cycleCharStatus(\''+c+'\')">'
+      +'<div class="char-glyph">'+c+'</div>'
+      +'<div class="char-lbl">'+lbl+'</div></div>';
+  }).join('');
+}
+
+function cycleCharStatus(c) {
+  var cycle = {mastered:'practiced', practiced:'new', new:'mastered'};
+  currentDetailCS[c] = cycle[currentDetailCS[c]||'new'];
+  renderDetailChars();
+}
+
+function saveCharStatus() {
+  if (!db || !currentDetailId) return;
+  db.collection('students').doc(currentDetailId)
+    .collection('progress').doc('hanzi')
+    .set({ charStatus: currentDetailCS }, { merge:true })
+    .then(function(){ showToast('✅ 學習狀態已儲存！'); })
+    .catch(function(e){ showToast('❌ 儲存失敗：'+e.message); });
+}
+
+function deleteStudent() {
+  if (!currentDetailId) return;
+  var name = document.getElementById('detail-name').textContent;
+  if (!confirm('確定要刪除「'+name+'」的所有資料嗎？\n\n此操作無法復原！')) return;
+  db.collection('students').doc(currentDetailId)
+    .collection('progress').doc('hanzi').delete()
+    .then(function(){
+      return db.collection('students').doc(currentDetailId).delete();
+    }).then(function(){
+      showToast('🗑 已刪除「'+name+'」的資料。');
+      backToOverview();
+      loadStudents();
+    }).catch(function(e){ showToast('❌ 刪除失敗：'+e.message); });
 }
 
 function backToOverview() {

@@ -1996,8 +1996,8 @@ function startQuiz() {
       if (mistakes === 0) {
         sfxCelebrate();
         setFeedback('fb-ok fb-big','🎉 完美！一筆都沒錯！');
-        charStatus[chars[currentIdx]]='mastered';
-        showToast('🎉 完美！一筆都沒錯！');
+        charStatus[chars[currentIdx]]='practiced';  // 練習完只算練習中，測驗通過才算掌握
+        showToast('🎉 完美！繼續默寫測驗吧！');
       } else if (mistakes <= 3) {
         sfxPass();
         setFeedback('fb-praise fb-big','😊 完成！錯了 '+mistakes+' 筆，再練更好！');
@@ -2231,7 +2231,6 @@ function switchToDict() {
   // 底部：隱藏全寬列，改用右下角浮動小按鈕
   var bb = document.getElementById('bottom-bar');
   bb.style.display = 'none';
-  // 移除舊浮動列（如有）
   var old = document.getElementById('dict-float-bar');
   if (old) old.remove();
   var fbar = document.createElement('div');
@@ -2241,7 +2240,8 @@ function switchToDict() {
     +'<span>✓</span><span>交　卷</span></button>';
   document.body.appendChild(fbar);
 
-  initDictCanvas();
+  // 等 DOM 更新後再初始化 canvas，避免 getBoundingClientRect 讀到 0
+  setTimeout(function(){ initDictCanvas(); }, 80);
 }
 
 function getGridPx() {
