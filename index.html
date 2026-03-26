@@ -81,11 +81,7 @@ body {
   box-shadow:0 2px 8px rgba(74,144,217,.18);
 }
 .btn-back:active { transform:scale(.95); }
-.star-badge {
-  display:flex; align-items:center; gap:5px;
-  background:#fff8e1; border-radius:20px; padding:5px 12px;
-  font-weight:900; font-size:.95rem; color:#d4900a; white-space:nowrap;
-}
+/* star-badge removed */
 
 /* ══════════════════════════
    畫面一：首頁
@@ -346,40 +342,48 @@ body {
 }
 .result-panel.show { display:flex; animation:popIn .4s cubic-bezier(.34,1.56,.64,1); }
 
-/* 疊加對比格：學生筆跡 + 標準字重疊顯示 */
-.overlay-wrap {
-  position:relative; flex-shrink:0;
-  border:3px solid #c8d8ec; border-radius:18px; overflow:hidden;
+/* 默寫對照：左右並排 */
+.compare-wrap {
+  display:flex; gap:16px; align-items:flex-start;
+  justify-content:center; flex-wrap:wrap; width:100%;
+}
+.compare-col {
+  display:flex; flex-direction:column; align-items:center; gap:6px;
+}
+.compare-lbl {
+  font-size:.82rem; font-weight:800; color:var(--muted);
+}
+/* 學生筆跡格 */
+.compare-student-wrap {
+  border:3px solid #c8d8ec; border-radius:16px; overflow:hidden;
+  flex-shrink:0;
   background-color:white;
   background-image:
     linear-gradient(to right, rgba(200,216,236,.45) 1px,transparent 1px),
     linear-gradient(to bottom,rgba(200,216,236,.45) 1px,transparent 1px),
     linear-gradient(to right, #c8d8ec 1px,transparent 1px),
     linear-gradient(to bottom,#c8d8ec 1px,transparent 1px);
-  background-size:
-    calc(var(--grid)/9) calc(var(--grid)/9),
-    calc(var(--grid)/9) calc(var(--grid)/9),
-    33.333% 33.333%, 33.333% 33.333%;
+  background-size:33.333% 33.333%, 33.333% 33.333%,
+                  33.333% 33.333%, 33.333% 33.333%;
 }
-/* 學生筆跡層（底層） */
-#overlay-student {
-  display:block; width:var(--grid); height:var(--grid);
-}
-/* 標準字疊加層（絕對定位在上方，半透明紅色） */
-#overlay-ref {
-  position:absolute; inset:0; pointer-events:none;
+#compare-student { display:block; }
+/* 正確字形格 */
+.compare-ref-wrap {
+  border:3px solid #c8d8ec; border-radius:16px;
+  background-color:white; flex-shrink:0;
   display:flex; align-items:center; justify-content:center;
-  font-size:calc(var(--grid) * 0.75);
+  background-image:
+    linear-gradient(to right, #c8d8ec 1px,transparent 1px),
+    linear-gradient(to bottom,#c8d8ec 1px,transparent 1px);
+  background-size:33.333% 33.333%, 33.333% 33.333%;
+}
+#compare-ref {
   font-family:'Noto Serif TC',serif; font-weight:900;
-  color:rgba(232,68,68,0.35);
-  line-height:1;
+  color:var(--text); line-height:1;
 }
-.overlay-legend {
-  display:flex; gap:16px; justify-content:center; flex-wrap:wrap;
-  font-size:.8rem; font-weight:700;
+.compare-arrow {
+  font-size:1.6rem; color:var(--muted); align-self:center; margin-top:20px;
 }
-.legend-item { display:flex; align-items:center; gap:5px; }
-.legend-dot  { width:14px; height:14px; border-radius:50%; flex-shrink:0; }
 
 /* 自評按鈕 */
 .self-eval-title {
@@ -462,6 +466,204 @@ body {
 .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
 
 @keyframes sparkle { 0%,100%{transform:scale(1)} 50%{transform:scale(1.3)} }
+
+/* ══ 輪次結算面板 ══ */
+.round-section {
+  width:100%; margin-bottom:8px;
+}
+.round-section-title {
+  font-size:.92rem; font-weight:900; padding:8px 14px;
+  border-radius:10px; margin-bottom:10px; text-align:center;
+}
+.round-pass-title { background:#e8f8ee; color:var(--green-dk); }
+.round-fail-title { background:#fff0f0; color:var(--red); }
+
+/* ══ 測驗語音按鈕 ══ */
+.exam-voice-wrap {
+  display:flex; flex-direction:column; align-items:center; gap:8px;
+  margin:4px 0 16px;
+}
+.btn-exam-voice {
+  display:flex; align-items:center; gap:12px;
+  background:linear-gradient(135deg,var(--blue),var(--blue-dk));
+  color:white; border:none; border-radius:20px;
+  padding:16px 36px; cursor:pointer; transition:all .15s;
+  box-shadow:0 4px 16px rgba(74,144,217,.4);
+  font-family:'Nunito','Noto Sans TC',sans-serif;
+}
+.btn-exam-voice:active { transform:scale(.95); }
+.btn-exam-voice.playing { background:linear-gradient(135deg,#389959,#52c97a); }
+.exam-voice-icon  { font-size:2rem; }
+.exam-voice-label { font-size:1.1rem; font-weight:900; }
+.exam-voice-hint  { font-size:.8rem; font-weight:700; color:var(--muted); }
+
+/* ══ 生字選單底部測驗按鈕 ══ */
+.menu-exam-bar {
+  position:sticky; bottom:0;
+  padding:10px 16px 20px;
+  background:linear-gradient(to top,rgba(238,245,252,1) 60%,rgba(238,245,252,0));
+}
+
+/* 全部完成後測驗按鈕：閃爍 + 持續呼吸 */
+@keyframes examBtnPulse {
+  0%   { transform:scale(1);    box-shadow:0 5px 18px rgba(0,0,0,.14); }
+  30%  { transform:scale(1.04); box-shadow:0 0 0 10px rgba(255,180,0,.5), 0 0 32px rgba(255,140,0,.55); }
+  60%  { transform:scale(1);    box-shadow:0 0 0 20px rgba(255,180,0,0); }
+  100% { transform:scale(1);    box-shadow:0 5px 18px rgba(0,0,0,.14); }
+}
+@keyframes examBtnBreath {
+  0%,100% { transform:scale(1);    box-shadow:0 5px 18px rgba(0,0,0,.14); }
+  50%     { transform:scale(1.03); box-shadow:0 0 24px rgba(255,140,0,.5); }
+}
+@keyframes examBtnShine {
+  0%,100% { background:linear-gradient(135deg,#c22,var(--red)); }
+  50%     { background:linear-gradient(135deg,#ff6b00,#ffb300); }
+}
+/* 閃爍 3 次後轉呼吸 */
+.btn-exam-pulse {
+  animation:examBtnPulse 0.7s ease 3, examBtnShine 0.7s ease 3;
+}
+.btn-exam-breathe {
+  animation:examBtnBreath 1.8s ease-in-out infinite,
+            examBtnShine  3.6s ease-in-out infinite;
+}
+
+/* ══ 測驗畫面 ══ */
+.exam-progress-bar-wrap {
+  height:8px; background:#dde8f5; flex-shrink:0;
+}
+.exam-progress-fill {
+  height:100%; background:linear-gradient(90deg,var(--blue),var(--purple,#9b7fe8));
+  transition:width .4s ease; border-radius:0 4px 4px 0;
+}
+.exam-q-header {
+  text-align:center; margin-bottom:14px;
+}
+.exam-q-num {
+  font-size:1rem; font-weight:900; color:var(--blue-dk); margin-bottom:4px;
+}
+.exam-q-hint {
+  font-size:.82rem; font-weight:600; color:var(--muted);
+}
+
+/* 成績單 */
+.exam-score-header {
+  text-align:center; padding:20px 0 16px;
+}
+.exam-score-icon  { font-size:3.5rem; margin-bottom:8px; }
+.exam-score-title { font-size:1.5rem; font-weight:900; color:var(--text); margin-bottom:6px; }
+.exam-score-sub   { font-size:.95rem; font-weight:700; color:var(--muted); }
+
+.exam-score-grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(130px,1fr));
+  gap:12px; width:100%; margin-bottom:8px;
+}
+.exam-score-item {
+  background:white; border-radius:16px;
+  padding:16px 10px 12px;
+  display:flex; flex-direction:column; align-items:center; gap:8px;
+  box-shadow:var(--shadow); border:3px solid transparent;
+}
+.exam-score-item.pass   { border-color:var(--green); }
+.exam-score-item.ok     { border-color:var(--yellow); }
+.exam-score-item.fail   { border-color:#ffb3b3; }
+.exam-score-item.skip   { border-color:#c8d8ec; opacity:.7; }
+.exam-score-glyph { font-size:2.8rem; font-family:'Noto Serif TC',serif; font-weight:900; line-height:1; }
+.exam-score-stars { font-size:1rem; letter-spacing:2px; }
+.exam-score-label { font-size:.72rem; font-weight:800; padding:3px 10px; border-radius:20px; }
+.label-pass   { background:#e8f8ee; color:var(--green-dk); }
+.label-ok     { background:#fff8e1; color:#b07800; }
+.label-fail   { background:#fff0f0; color:var(--red); }
+.label-skip   { background:#f0f4f8; color:var(--muted); }
+
+
+/* ══ 模式選擇畫面（畫面二點字後出現） ══ */
+#screen-mode {
+  background:var(--bg);
+  display:flex; flex-direction:column;
+}
+.mode-select-body {
+  flex:1; display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+  padding:24px 20px; gap:20px;
+}
+.mode-select-char {
+  font-size:6rem; font-family:'Noto Serif TC',serif; font-weight:900;
+  color:var(--text); line-height:1;
+  background:white; border-radius:var(--radius);
+  width:160px; height:160px;
+  display:flex; align-items:center; justify-content:center;
+  box-shadow:var(--shadow-lg);
+  border:3px solid #c8d8ec;
+}
+.mode-select-hint {
+  font-size:1rem; font-weight:700; color:var(--muted); text-align:center;
+}
+.mode-select-btns {
+  display:flex; gap:16px; flex-wrap:wrap; justify-content:center; width:100%;
+}
+.btn-mode-select {
+  flex:1; min-width:140px; max-width:220px;
+  padding:22px 16px; border-radius:20px; border:none;
+  font-family:'Nunito','Noto Sans TC',sans-serif;
+  font-weight:900; cursor:pointer; transition:all .15s;
+  display:flex; flex-direction:column; align-items:center; gap:10px;
+  box-shadow:var(--shadow);
+}
+.btn-mode-select:active { transform:scale(.95); }
+.btn-mode-select-icon { font-size:2.8rem; }
+.btn-mode-select-title { font-size:1.2rem; }
+.btn-mode-select-sub   { font-size:.78rem; font-weight:700; opacity:.75; }
+.btn-mode-prac { background:linear-gradient(135deg,#e8f4fd,#c8dff5); color:var(--blue-dk); border:3px solid var(--blue); }
+.btn-mode-exam { background:linear-gradient(135deg,#fff0e0,#ffd5b0); color:#b05000; border:3px solid var(--orange); }
+
+/* ══ 測驗模式特有樣式 ══ */
+/* 測驗 quiz 格：完全不顯示輪廓，讓學生靠記憶 */
+.exam-box {
+  width:var(--grid); height:var(--grid);
+  border:3px solid #c8d8ec; border-radius:18px;
+  background-color:white; flex-shrink:0; position:relative;
+  cursor:crosshair;
+  /* 九宮格 */
+  background-image:
+    linear-gradient(to right,  rgba(200,216,236,.45) 1px,transparent 1px),
+    linear-gradient(to bottom, rgba(200,216,236,.45) 1px,transparent 1px),
+    linear-gradient(to right,  #c8d8ec 1px,transparent 1px),
+    linear-gradient(to bottom, #c8d8ec 1px,transparent 1px);
+  background-size:
+    calc(var(--grid)/9) calc(var(--grid)/9),
+    calc(var(--grid)/9) calc(var(--grid)/9),
+    33.333% 33.333%, 33.333% 33.333%;
+  /* SVG 置中 */
+  display:flex; align-items:center; justify-content:center;
+  overflow:hidden;
+}
+.exam-box svg {
+  border-radius:15px;
+  position:absolute;
+  top:50% !important; left:50% !important;
+  transform:translate(-50%,-50%) !important;
+}
+
+/* 測驗結果卡 */
+.exam-result-card {
+  display:none; flex-direction:column; align-items:center; gap:14px;
+  background:white; border-radius:var(--radius);
+  padding:24px 20px; box-shadow:var(--shadow-lg);
+  width:100%; max-width:500px;
+  animation:popIn .4s cubic-bezier(.34,1.56,.64,1);
+}
+.exam-result-card.show { display:flex; }
+.exam-result-icon { font-size:4rem; }
+.exam-result-title { font-size:1.4rem; font-weight:900; text-align:center; }
+.exam-result-detail { font-size:.92rem; font-weight:700; color:var(--muted); text-align:center; }
+.exam-result-pass { color:var(--green-dk); }
+.exam-result-fail { color:var(--red); }
+.exam-mistake-bar {
+  width:100%; background:#f0f4f8; border-radius:12px; padding:12px 16px;
+  font-size:.88rem; font-weight:800; color:var(--text); text-align:center;
+}
 </style>
 </head>
 <body>
@@ -471,7 +673,6 @@ body {
 <div class="screen active" id="screen-home">
   <div class="topbar">
     <div class="topbar-title">✏️ 太平國小<span>國字學習</span></div>
-    <div class="star-badge">⭐ <span id="star-num-home">0</span></div>
   </div>
   <div class="home-hero">
     <div class="home-school">臺東縣太平國小</div>
@@ -481,7 +682,7 @@ body {
     <div class="home-card-label">📝 請輸入今天要學的字</div>
     <div class="char-input-row">
       <input class="char-input" id="char-input" type="text"
-        placeholder="例如：山水火土木" maxlength="20" value="山水火土木">
+        placeholder="例如：山水火土木" maxlength="20" value="臺東縣太平國小">
       <button class="btn-start" onclick="startLesson()">開始上課 →</button>
     </div>
     <div class="home-tip">💡 直接輸入漢字，最多 20 個字，按「開始上課」進入學習。</div>
@@ -495,9 +696,124 @@ body {
       <button class="btn-back" onclick="goTo('home')">← 返回</button>
       <div class="topbar-title">今天的<span>生字</span></div>
     </div>
-    <div class="star-badge">⭐ <span id="star-num-menu">0</span></div>
   </div>
   <div class="menu-body" id="menu-body"></div>
+  <!-- 測驗按鈕 -->
+  <div class="menu-exam-bar">
+    <button class="btn-big btn-big-exam" id="btn-start-exam" onclick="startFullExam()">
+      <span class="btn-big-icon">📝</span><span>開始今日測驗</span>
+    </button>
+  </div>
+</div>
+
+<!-- ══ 測驗畫面 ══ -->
+<div class="screen right" id="screen-exam">
+  <div class="topbar">
+    <div class="topbar-left">
+      <button class="btn-back" onclick="abortExam()">✕ 結束測驗</button>
+      <div class="topbar-title" id="exam-topbar-title">今日測驗</div>
+    </div>
+  </div>
+
+  <!-- 題目進度列 -->
+  <div class="exam-progress-bar-wrap">
+    <div class="exam-progress-fill" id="exam-progress-fill"></div>
+  </div>
+
+  <div class="learn-body" id="exam-body">
+
+    <!-- 出題區 -->
+    <div id="exam-question-panel">
+      <div class="exam-q-header">
+        <div class="exam-q-num" id="exam-q-num">第 1 題 / 共 5 題</div>
+        <div class="exam-q-hint">仔細聽，把你聽到的字寫出來</div>
+      </div>
+
+      <!-- 語音提示區 -->
+      <div class="exam-voice-wrap">
+        <button class="btn-exam-voice" id="btn-exam-voice" onclick="playExamVoice()">
+          <span class="exam-voice-icon">🔊</span>
+          <span class="exam-voice-label">再聽一次</span>
+        </button>
+        <div class="exam-voice-hint">按按鈕聽題目</div>
+      </div>
+
+      <!-- 完全空白九宮格 -->
+      <div class="exam-box" id="exam-quiz-target"></div>
+      <button class="btn-ctrl btn-clear" style="margin-top:10px;width:var(--grid)" onclick="skipExamChar()">
+        ⏭ 我不會，跳過
+      </button>
+    </div>
+
+    <!-- 輪次結算面板（每輪結束後顯示，最終輪除外） -->
+    <div id="exam-round-panel" style="display:none">
+      <div class="exam-score-header">
+        <div class="exam-score-icon" id="round-icon">📊</div>
+        <div class="exam-score-title" id="round-title">第 1 輪結算</div>
+        <div class="exam-score-sub" id="round-sub"></div>
+      </div>
+
+      <!-- 答對的字 -->
+      <div class="round-section" id="round-pass-section">
+        <div class="round-section-title round-pass-title">✅ 這些字答對了！</div>
+        <div class="exam-score-grid" id="round-pass-grid"></div>
+      </div>
+
+      <!-- 需要再練的字 -->
+      <div class="round-section" id="round-fail-section">
+        <div class="round-section-title round-fail-title">💪 這些字要再練！</div>
+        <div class="exam-score-grid" id="round-fail-grid"></div>
+      </div>
+
+      <button class="btn-big btn-big-exam" id="btn-next-round" onclick="doStartNextRound()"
+        style="margin-top:8px">
+        <span class="btn-big-icon">▶</span>
+        <span id="btn-next-round-label">開始第 2 輪</span>
+      </button>
+    </div>
+
+    <!-- 成績單（全部作答後顯示） -->
+    <div id="exam-result-panel" style="display:none">
+      <div class="exam-score-header">
+        <div class="exam-score-icon" id="exam-score-icon">🎉</div>
+        <div class="exam-score-title" id="exam-score-title">測驗完成！</div>
+        <div class="exam-score-sub" id="exam-score-sub"></div>
+      </div>
+      <div class="exam-score-grid" id="exam-score-grid"></div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-top:8px">
+        <button class="btn-big btn-big-prac" style="max-width:260px" onclick="goTo('menu')">
+          <span class="btn-big-icon">📋</span><span>回到生字選單</span>
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══ 畫面二點五：模式選擇 ══ -->
+<div class="screen right" id="screen-mode">
+  <div class="topbar">
+    <div class="topbar-left">
+      <button class="btn-back" onclick="goTo('menu')">← 返回</button>
+      <div class="topbar-title" id="mode-select-title">選擇模式</div>
+    </div>
+  </div>
+  <div class="mode-select-body">
+    <div class="mode-select-char" id="mode-select-char"></div>
+    <div class="mode-select-hint">請選擇要做什麼</div>
+    <div class="mode-select-btns">
+      <button class="btn-mode-select btn-mode-prac" onclick="enterPracticeMode()">
+        <span class="btn-mode-select-icon">✏️</span>
+        <span class="btn-mode-select-title">練　習</span>
+        <span class="btn-mode-select-sub">看筆順、照著寫</span>
+      </button>
+      <button class="btn-mode-select btn-mode-exam" onclick="enterExamMode()">
+        <span class="btn-mode-select-icon">📝</span>
+        <span class="btn-mode-select-title">測　驗</span>
+        <span class="btn-mode-select-sub">靠自己的記憶寫</span>
+      </button>
+    </div>
+  </div>
 </div>
 
 <!-- ══ 畫面三：學習頁 ══ -->
@@ -507,7 +823,6 @@ body {
       <button class="btn-back" onclick="goTo('menu')">← 返回</button>
       <div class="topbar-title" id="learn-title">學習</div>
     </div>
-    <div class="star-badge">⭐ <span id="star-num-learn">0</span></div>
   </div>
 
   <div class="mode-banner">
@@ -564,25 +879,22 @@ body {
 
         <!-- 結果面板：疊加對比 + 學生自評 -->
         <div class="result-panel" id="result-panel">
-          <div style="font-size:1rem;font-weight:900;text-align:center">
-            ✏️ 對照結果<br>
-            <span style="font-size:.8rem;font-weight:600;color:var(--muted)">黑色＝你寫的　紅色＝正確字</span>
-          </div>
+          <div style="font-size:1rem;font-weight:900;text-align:center">✏️ 對照結果</div>
 
-          <!-- 疊加格：學生筆跡 + 標準字半透明疊加 -->
-          <div class="overlay-wrap" id="overlay-wrap">
-            <canvas id="overlay-student"></canvas>
-            <div id="overlay-ref"></div>
-          </div>
-
-          <div class="overlay-legend">
-            <div class="legend-item">
-              <div class="legend-dot" style="background:#1e2d3d"></div>
-              <span>你寫的筆跡</span>
+          <!-- 左右對照 -->
+          <div class="compare-wrap">
+            <div class="compare-col">
+              <div class="compare-lbl">✍️ 你寫的</div>
+              <div class="compare-student-wrap" id="compare-student-wrap">
+                <canvas id="compare-student"></canvas>
+              </div>
             </div>
-            <div class="legend-item">
-              <div class="legend-dot" style="background:rgba(232,68,68,0.5)"></div>
-              <span>正確字形</span>
+            <div class="compare-arrow">↔</div>
+            <div class="compare-col">
+              <div class="compare-lbl">📖 正確字形</div>
+              <div class="compare-ref-wrap" id="compare-ref-wrap">
+                <div id="compare-ref"></div>
+              </div>
             </div>
           </div>
 
@@ -600,9 +912,9 @@ body {
           <!-- 評完後：像 → 顯示慶祝＋下一個字 -->
           <div id="after-eval" style="display:none;flex-direction:column;align-items:center;gap:12px;width:100%">
             <div id="eval-verdict" style="border-radius:14px;padding:14px 20px;text-align:center;font-size:1.2rem;font-weight:900;width:100%"></div>
-            <button class="btn-big btn-big-prac" id="btn-dict-next" onclick="nextChar()"
+            <button class="btn-big btn-big-prac" id="btn-dict-next" onclick="goBackToMenu()"
               style="max-width:320px;font-size:1.1rem">
-              <span class="btn-big-icon">➡️</span><span>下一個字</span>
+              <span class="btn-big-icon">📋</span><span>回到列表</span>
             </button>
           </div>
 
@@ -617,6 +929,36 @@ body {
 
       </div>
     </div>
+    <!-- ── 測驗模式面板 ── -->
+    <div id="panel-exam" style="display:none">
+      <div class="dict-wrap">
+
+        <div class="dict-info">
+          <div class="dict-info-title">📝 測驗模式</div>
+          <div class="dict-info-sub">靠自己的記憶把這個字寫出來！<br>寫完後按「交卷」。</div>
+        </div>
+
+        <!-- 測驗書寫格（無任何提示） -->
+        <div class="exam-box" id="exam-target"></div>
+
+        <!-- 測驗結果卡 -->
+        <div class="exam-result-card" id="exam-result-card">
+          <div class="exam-result-icon" id="exam-result-icon"></div>
+          <div class="exam-result-title" id="exam-result-title"></div>
+          <div class="exam-result-detail" id="exam-result-detail"></div>
+          <div class="exam-mistake-bar" id="exam-mistake-bar"></div>
+          <button class="btn-big btn-big-prac" id="btn-exam-next" onclick="nextChar()" style="max-width:320px">
+            <span class="btn-big-icon">➡️</span><span>下一個字</span>
+          </button>
+          <button class="btn-big" id="btn-exam-retry" onclick="retryExam()"
+            style="max-width:320px;background:#fff3e0;color:var(--orange);box-shadow:none">
+            <span class="btn-big-icon">🔄</span><span>再考一次</span>
+          </button>
+        </div>
+
+      </div>
+    </div>
+
   </div><!-- learn-body -->
 
   <!-- 底部大按鈕 -->
@@ -682,10 +1024,30 @@ function sfxWrong() {
   playTone(180, 'square', 0.10, 0.10, 0);
 }
 
-// 慶祝音效：五音上升
+// 慶祝音效：一般（五音上升）
 function sfxCelebrate() {
   var notes = [523,659,784,880,1047];
   notes.forEach(function(f,i){ playTone(f,'sine',0.18,0.18,i*0.1); });
+}
+
+// 大慶祝音效：全部完成用，三波爆發
+function sfxGrandCelebrate() {
+  // 第一波：快速上升琶音
+  [523,659,784,1047,1319].forEach(function(f,i){
+    playTone(f,'sine',0.2,0.22,i*0.07);
+  });
+  // 第二波：和弦爆發
+  [523,659,784].forEach(function(f,i){
+    playTone(f,'triangle',0.3,0.25,0.5+i*0.02);
+  });
+  // 第三波：最高音收尾
+  playTone(1047,'sine',0.4,0.28,0.9);
+  playTone(1319,'sine',0.4,0.25,1.0);
+  playTone(1568,'sine',0.5,0.22,1.1);
+  // 底鼓感：低頻短音
+  [80,100,120].forEach(function(f,i){
+    playTone(f,'square',0.08,0.15,0.5+i*0.1);
+  });
 }
 
 // 默寫合格音效：和弦
@@ -726,9 +1088,9 @@ function speakChar(char) {
 var chars      = [];
 var charStatus = {};
 var currentIdx = 0;
-var stars      = 0;
 var currentScreen = 'home';
 var currentMode   = 'practice';
+var examWriter    = null;  // 測驗模式 HanziWriter
 var dictScore     = -1;  // 本次默寫分數（-1 = 尚未提交）
 
 var refWriter  = null;
@@ -740,7 +1102,7 @@ var dSize = 340;
 // ═══════════════════════════════════════
 //  畫面切換
 // ═══════════════════════════════════════
-var SCREENS = ['home','menu','learn'];
+var SCREENS = ['home','menu','exam','mode','learn'];
 
 function goTo(name) {
   var from = currentScreen, to = name;
@@ -764,9 +1126,8 @@ function startLesson() {
   var list = Array.from(new Set(raw.replace(/\s/g,'').split('').filter(function(c){ return c; })));
   if (!list.length) return;
   sfxTap();
-  chars = list; charStatus = {}; stars = 0;
+  chars = list; charStatus = {};
   chars.forEach(function(c){ charStatus[c]='new'; });
-  updateStars(0);
   renderMenu();
   goTo('menu');
 }
@@ -803,21 +1164,65 @@ function onCardClick(evt, idx) {
 
   // 先發音
   speakChar(chars[idx]);
-  // 短暫延遲後切換畫面，讓語音有機會觸發
-  setTimeout(function(){ openChar(idx); }, 300);
+  // 直接進練習頁
+  setTimeout(function(){
+    currentIdx = idx;
+    var char = chars[idx];
+    document.getElementById('learn-title').innerHTML =
+      '「<span style="color:var(--orange);font-family:\"Noto Serif TC\",serif">'+char+'</span>」';
+    goTo('learn');
+    setTimeout(function(){ switchToPractice(); }, 450);
+  }, 300);
 }
 
+// 顯示模式選擇畫面
+function openModeSelect(idx) {
+  currentIdx = idx;
+  var char = chars[idx];
+  document.getElementById('mode-select-char').textContent = char;
+  document.getElementById('mode-select-title').innerHTML =
+    '「<span style="color:var(--orange);font-family:\"Noto Serif TC\",serif">'+char+'</span>」';
+  goTo('mode');
+}
+
+// 從模式選擇進入練習
+function enterPracticeMode() {
+  sfxTap();
+  var char = chars[currentIdx];
+  document.getElementById('learn-title').innerHTML =
+    '「<span style="color:var(--orange);font-family:\"Noto Serif TC\",serif">'+char+'</span>」';
+  goTo('learn');
+  setTimeout(function(){ switchToPractice(); }, 450);
+}
+
+// 從模式選擇進入測驗
+function enterExamMode() {
+  sfxTap();
+  var char = chars[currentIdx];
+  document.getElementById('learn-title').innerHTML =
+    '「<span style="color:var(--orange);font-family:\"Noto Serif TC\",serif">'+char+'</span>」';
+  goTo('learn');
+  setTimeout(function(){ switchToExam(); }, 450);
+}
+
+
 // ═══════════════════════════════════════
-//  進入學習頁
+//  進入學習頁（nextChar 用，直接進同模式）
 // ═══════════════════════════════════════
 function openChar(idx) {
   currentIdx = idx;
   var char   = chars[idx];
   document.getElementById('learn-title').innerHTML =
-    '「<span style="color:var(--orange);font-family:\'Noto Serif TC\',serif">'+char+'</span>」';
-  goTo('learn');
-  setTimeout(function(){ switchToPractice(); }, 450);
+    '「<span style="color:var(--orange);font-family:\"Noto Serif TC\",serif">'+char+'</span>」';
+  if (currentMode === 'exam') {
+    goTo('learn');
+    setTimeout(function(){ switchToExam(); }, 450);
+  } else {
+    goTo('learn');
+    setTimeout(function(){ switchToPractice(); }, 450);
+  }
 }
+
 
 // ═══════════════════════════════════════
 //  練習模式
@@ -889,17 +1294,17 @@ function startQuiz() {
       if (mistakes === 0) {
         sfxCelebrate();
         setFeedback('fb-ok fb-big','🎉 完美！一筆都沒錯！');
-        addStars(5); charStatus[chars[currentIdx]]='mastered';
-        showToast('⭐ 完美！+5 顆星！');
+        charStatus[chars[currentIdx]]='mastered';
+        showToast('🎉 完美！一筆都沒錯！');
       } else if (mistakes <= 3) {
         sfxPass();
         setFeedback('fb-praise fb-big','😊 完成！錯了 '+mistakes+' 筆，再練更好！');
-        addStars(3); charStatus[chars[currentIdx]]='practiced';
-        showToast('⭐ +3 顆星！繼續加油！');
+        charStatus[chars[currentIdx]]='practiced';
+        showToast('👍 完成！繼續加油！');
       } else {
         sfxWrong();
         setFeedback('fb-wrong fb-big','💪 完成！錯了 '+mistakes+' 筆，多練幾次！');
-        addStars(1); charStatus[chars[currentIdx]]='practiced';
+        charStatus[chars[currentIdx]]='practiced';
       }
       renderMenu();
       // 練習完成：解鎖底部「開始默寫」大按鈕
@@ -949,6 +1354,161 @@ function setFeedback(cls, html) {
   if (!el) return;
   el.className = 'feedback-box '+cls;
   el.innerHTML = html;
+}
+
+// ═══════════════════════════════════════
+//  測驗模式
+// ═══════════════════════════════════════
+function switchToExam() {
+  currentMode = 'exam';
+
+  document.getElementById('panel-practice').style.display = 'none';
+  document.getElementById('panel-dict').style.display     = 'none';
+  document.getElementById('panel-exam').style.display     = '';
+  document.getElementById('exam-result-card').classList.remove('show');
+  document.getElementById('mode-icon').textContent  = '📝';
+  document.getElementById('mode-title').textContent = '測驗模式';
+  document.getElementById('mode-sub').textContent   = '靠記憶把字寫出來！';
+
+  // 底部：隱藏（測驗不需要底部按鈕，交卷在結果顯示後）
+  var fbar = document.getElementById('dict-float-bar');
+  if (fbar) fbar.remove();
+  var bb = document.getElementById('bottom-bar');
+  bb.style.display = 'none';
+
+  // 加入交卷浮動按鈕
+  var old = document.getElementById('dict-float-bar');
+  if (old) old.remove();
+  var fbar2 = document.createElement('div');
+  fbar2.className = 'dict-float-bar'; fbar2.id = 'dict-float-bar';
+  fbar2.innerHTML = '<button class="btn-float btn-float-submit" onclick="submitExam()">'
+    +'<span>✓</span><span>交　卷</span></button>';
+  document.body.appendChild(fbar2);
+
+  initExam(chars[currentIdx]);
+}
+
+function initExam(char) {
+  // 重置結果卡
+  document.getElementById('exam-result-card').classList.remove('show');
+
+  var et = document.getElementById('exam-target');
+  et.innerHTML = '';
+  et.classList.remove('flash-green','flash-red');
+
+  var sz = getGridPx();
+  examWriter = HanziWriter.create('exam-target', char, {
+    width:sz, height:sz, padding:Math.round(sz*0.07),
+    strokeColor:'#2d6fa8',
+    outlineColor:'rgba(0,0,0,0)',    // 完全隱藏輪廓
+    drawingColor:'#2d6fa8',
+    drawingWidth:Math.max(4, Math.round(sz*0.013)),
+    highlightColor:'rgba(0,0,0,0)', // 不顯示提示筆畫
+    showCharacter:false,
+    showOutline:false,               // 無輪廓
+    leniency:1.0,                    // 測驗模式判斷稍嚴
+    onLoadCharDataSuccess:function(){ startExamQuiz(char); }
+  });
+}
+
+var examMistakes = 0;
+var examStrokes  = 0;
+var examTotal    = 0;
+
+function startExamQuiz(char) {
+  examMistakes = 0; examStrokes = 0; examTotal = 0;
+
+  examWriter.quiz({
+    onMistake:function(data){
+      examMistakes++;
+      flashBox('exam-target','red');
+      sfxWrong();
+      // 測驗模式：不顯示提示，只閃紅光
+    },
+    onCorrectStroke:function(data){
+      examStrokes++;
+      examTotal = data.totalStrokes;
+      flashBox('exam-target','green');
+      sfxCorrect();
+    },
+    onComplete:function(summary){
+      examMistakes = summary.totalMistakes;
+      examTotal    = summary.strokeCount || examStrokes;
+      showExamResult(char, examMistakes, examTotal);
+    }
+  });
+}
+
+function showExamResult(char, mistakes, total) {
+  // 移除交卷浮動按鈕
+  var fbar = document.getElementById('dict-float-bar');
+  if (fbar) fbar.remove();
+
+  var passed = mistakes <= 2;
+
+  var icon   = document.getElementById('exam-result-icon');
+  var title  = document.getElementById('exam-result-title');
+  var detail = document.getElementById('exam-result-detail');
+  var mbar   = document.getElementById('exam-mistake-bar');
+  var nextBtn= document.getElementById('btn-exam-next');
+  var retryBtn=document.getElementById('btn-exam-retry');
+
+  if (passed) {
+    sfxCelebrate();
+    icon.textContent  = '🎉';
+    title.textContent = '通過！';
+    title.className   = 'exam-result-title exam-result-pass';
+    charStatus[char]  = 'mastered';
+    showToast(mistakes === 0 ? '🎉 完美通過！' : '👍 通過了！');
+    nextBtn.style.display  = '';
+    retryBtn.style.display = 'none';
+  } else {
+    sfxWrong();
+    icon.textContent  = '💪';
+    title.textContent = '繼續加油！';
+    title.className   = 'exam-result-title exam-result-fail';
+    charStatus[char]  = 'practiced';
+    nextBtn.style.display  = 'none';
+    retryBtn.style.display = '';
+  }
+
+  detail.textContent = '「'+char+'」共 '+total+' 筆';
+  mbar.innerHTML = mistakes === 0
+    ? '✨ 一筆都沒錯！'
+    : '錯了 <strong style="font-size:1.2rem;color:var(--red)">'+mistakes+'</strong> 筆'
+      + (passed ? '　（錯 2 筆以內算通過）' : '　（需要錯 2 筆以內才通過）');
+
+  renderMenu();
+  document.getElementById('exam-result-card').classList.add('show');
+  setTimeout(function(){
+    document.getElementById('exam-result-card').scrollIntoView({behavior:'smooth',block:'center'});
+  }, 200);
+}
+
+function retryExam() {
+  sfxTap();
+  // 重新加交卷按鈕
+  var old = document.getElementById('dict-float-bar');
+  if (old) old.remove();
+  var fbar = document.createElement('div');
+  fbar.className = 'dict-float-bar'; fbar.id = 'dict-float-bar';
+  fbar.innerHTML = '<button class="btn-float btn-float-submit" onclick="submitExam()">'
+    +'<span>✓</span><span>交　卷</span></button>';
+  document.body.appendChild(fbar);
+  initExam(chars[currentIdx]);
+  document.getElementById('learn-body').scrollTo({top:0,behavior:'smooth'});
+}
+
+// submitExam：測驗模式的「交卷」其實就是讓 quiz 自然完成
+// 但如果學生想提前交卷（例如確定寫完了），強制觸發完成
+function submitExam() {
+  sfxTap();
+  if (!examWriter) return;
+  // 移除浮動按鈕
+  var fbar = document.getElementById('dict-float-bar');
+  if (fbar) fbar.remove();
+  // 直接觸發完成（用目前的錯誤數呈現結果）
+  showExamResult(chars[currentIdx], examMistakes, examTotal || examStrokes);
 }
 
 // ═══════════════════════════════════════
@@ -1058,17 +1618,25 @@ function submitDictation() {
   for (var i=3;i<px.length;i+=4){ if(px[i]>20){hasInk=true;break;} }
   if (!hasInk) { showToast('📝 還沒寫喔！請先在格子裡寫字！'); return; }
 
-  // 把學生筆跡複製到疊加格 canvas
-  var oc = document.getElementById('overlay-student');
-  oc.width  = dCanvas.width;
-  oc.height = dCanvas.height;
-  oc.style.width  = 'var(--grid)';
-  oc.style.height = 'var(--grid)';
-  oc.getContext('2d').drawImage(dCanvas, 0, 0);
+  // 左側：學生筆跡縮圖
+  var sz   = Math.min(dCanvas.width, 200); // 對照格固定 200px
+  var wrap = document.getElementById('compare-student-wrap');
+  wrap.style.width  = sz+'px';
+  wrap.style.height = sz+'px';
+  var oc = document.getElementById('compare-student');
+  oc.width  = sz;
+  oc.height = sz;
+  oc.style.width  = sz+'px';
+  oc.style.height = sz+'px';
+  oc.getContext('2d').drawImage(dCanvas, 0, 0, sz, sz);
 
-  // 疊加標準字（半透明紅色）
-  var ref = document.getElementById('overlay-ref');
-  ref.textContent = char;
+  // 右側：正確字形
+  var rw = document.getElementById('compare-ref-wrap');
+  rw.style.width  = sz+'px';
+  rw.style.height = sz+'px';
+  var rf = document.getElementById('compare-ref');
+  rf.textContent = char;
+  rf.style.fontSize = Math.round(sz*0.7)+'px';
 
   // 重置自評區
   document.getElementById('after-eval').style.display = 'none';
@@ -1098,13 +1666,12 @@ function selfEval(result) {
     // 像：顯示慶祝訊息 + 下一個字按鈕
     sfxCelebrate();
     charStatus[char] = 'mastered';
-    addStars(5);
     var ae = document.getElementById('after-eval');
     var vt = document.getElementById('eval-verdict');
     ae.style.display = 'flex';
     vt.style.cssText = 'border-radius:14px;padding:14px 20px;text-align:center;font-size:1.2rem;font-weight:900;width:100%;background:#e8f8ee;color:var(--green-dk)';
-    vt.innerHTML = '🎉 太棒了！+5 顆星！';
-    showToast('⭐ 太棒了！+5 顆星！');
+    vt.innerHTML = '🎉 太棒了！';
+    showToast('🎉 太棒了！');
     document.getElementById('btn-dict-next').style.display = '';
     document.getElementById('retry-only-btn').style.display = 'none';
   } else {
@@ -1123,25 +1690,373 @@ function nextChar() {
   if (currentIdx < chars.length-1) {
     openChar(currentIdx+1);
   } else {
-    sfxCelebrate();
-    showToast('🎊 全部學完了！超棒的！');
-    setTimeout(function(){ goTo('menu'); },800);
+    goTo('menu');
   }
 }
 
+// 默寫完成後「回到列表」：到 menu 後再判斷是否全部完成
+function goBackToMenu() {
+  sfxTap();
+  goTo('menu');
+  // 延遲確認是否所有字都已學習完成
+  setTimeout(function(){
+    var allDone = chars.every(function(c){
+      return charStatus[c] === 'mastered' || charStatus[c] === 'practiced';
+    });
+    var allMastered = chars.every(function(c){
+      return charStatus[c] === 'mastered';
+    });
+    if (allMastered) {
+      sfxGrandCelebrate();
+      showToast('🎊 全部字都學會了！超棒的！');
+      pulseExamBtn();
+    } else if (allDone) {
+      showToast('👍 繼續加油，把剩下的字也學會吧！');
+    }
+  }, 500);
+}
+
+
+
 // ═══════════════════════════════════════
-//  星星
+//  綜合測驗模式
 // ═══════════════════════════════════════
-function addStars(n) { stars+=n; updateStars(stars); }
-function updateStars(n) {
-  ['star-num-home','star-num-menu','star-num-learn'].forEach(function(id){
-    var el=document.getElementById(id);
-    if (!el) return;
-    el.textContent=n;
-    el.style.animation='none';
-    void el.offsetHeight;
-    el.style.animation='sparkle .45s ease';
+var examQueue     = [];   // 本輪待考字
+var examQIdx      = 0;    // 本輪題號
+var examResults   = {};   // {char: {round, mistakes, passed}} 最終成績（每字只記最後一次）
+var examRound     = 1;    // 目前輪次
+var examMaxRounds = 3;    // 最多幾輪
+var examQWriter   = null;
+var examQMistakes = 0;
+var examQStrokes  = 0;
+var examFailed    = [];   // 本輪答錯或跳過的字，進下一輪
+
+function startFullExam() {
+  sfxSwipe();
+  if (!chars.length) return;
+
+  // 初始化：第一輪考所有字
+  examQueue   = chars.slice().sort(function(){ return Math.random()-.5; });
+  examQIdx    = 0;
+  examResults = {};
+  examRound   = 1;
+  examFailed  = [];
+
+  goTo('exam');
+  setTimeout(function(){
+    document.getElementById('exam-question-panel').style.display = '';
+    document.getElementById('exam-result-panel').style.display   = 'none';
+    updateExamRoundBanner();
+    showExamQuestion();
+  }, 450);
+}
+
+function updateExamRoundBanner() {
+  var title = document.getElementById('exam-topbar-title');
+  if (title) {
+    title.textContent = examRound > 1
+      ? '第 '+examRound+' 輪（剩 '+examQueue.length+' 字）'
+      : '今日測驗';
+  }
+}
+
+function showExamQuestion() {
+  var total = examQueue.length;
+  var qNum  = examQIdx + 1;
+
+  // 進度
+  document.getElementById('exam-q-num').textContent = '第 '+qNum+' 題 ／ 共 '+total+' 題';
+  document.getElementById('exam-topbar-title').textContent = '今日測驗';
+  var pct = (examQIdx / total) * 100;
+  document.getElementById('exam-progress-fill').style.width = pct+'%';
+
+  // 重置
+  examQMistakes = 0; examQStrokes = 0;
+  var char = examQueue[examQIdx];
+
+  // 初始化 quiz（無輪廓、無提示筆畫）
+  var et = document.getElementById('exam-quiz-target');
+  et.innerHTML = '';
+  et.classList.remove('flash-green','flash-red');
+
+  // 直接讀 exam-quiz-target 的實際寬度
+  var etRect = et.getBoundingClientRect();
+  var sz = Math.round(etRect.width) || Math.round(Math.min(
+    (window.innerWidth - 80) / 1,
+    window.innerHeight - 320,
+    420
+  ));
+
+  examQWriter = HanziWriter.create('exam-quiz-target', char, {
+    width:sz, height:sz,
+    padding:Math.round(sz*0.08),
+    strokeColor:'#2d6fa8',
+    outlineColor:'rgba(0,0,0,0)',
+    drawingColor:'#2d6fa8',
+    drawingWidth:Math.max(4,Math.round(sz*0.013)),
+    highlightColor:'rgba(0,0,0,0)',
+    showCharacter:false, showOutline:false, leniency:1.0,
+    onLoadCharDataSuccess:function(){
+      setTimeout(function(){ playExamVoice(); }, 300);
+      startExamQQuiz(char);
+    }
   });
+}
+
+// 播放測驗語音提示
+function playExamVoice() {
+  var char = examQueue[examQIdx];
+  if (!char) return;
+  var btn = document.getElementById('btn-exam-voice');
+  if (btn) { btn.classList.add('playing'); }
+  speakChar(char);
+  // 播完後恢復按鈕顏色（預估播放時間）
+  setTimeout(function(){
+    if (btn) btn.classList.remove('playing');
+  }, 1200);
+}
+
+function startExamQQuiz(char) {
+  examQWriter.quiz({
+    onMistake:function(data){
+      examQMistakes++;
+      flashBox('exam-quiz-target','red');
+      sfxWrong();
+    },
+    onCorrectStroke:function(data){
+      examQStrokes++;
+      flashBox('exam-quiz-target','green');
+      sfxCorrect();
+    },
+    onComplete:function(summary){
+      examQMistakes = summary.totalMistakes;
+      // 短暫停頓讓學生看到完成，再自動進下一題
+      var passed = examQMistakes <= 2;
+      if (passed) { sfxCorrect(); } else { sfxWrong(); }
+      recordAndNext(char, examQMistakes, false);
+    }
+  });
+}
+
+function skipExamChar() {
+  sfxTap();
+  var char = examQueue[examQIdx];
+  if (examQWriter) {
+    try { examQWriter.cancelQuiz(); } catch(e){}
+  }
+  recordAndNext(char, 99, true); // 99 = 跳過
+}
+
+function recordAndNext(char, mistakes, skipped) {
+  var passed = !skipped && mistakes <= 2;
+
+  // 記錄這個字的成績（保留最佳成績：若之前已過，不降級）
+  var prev = examResults[char];
+  if (!prev || (!prev.passed && passed)) {
+    examResults[char] = { round:examRound, mistakes:mistakes, skipped:skipped, passed:passed };
+  }
+
+  // 更新生字狀態
+  if (passed) {
+    charStatus[char] = mistakes === 0 ? 'mastered' : 'practiced';
+  } else {
+    charStatus[char] = 'practiced';
+    examFailed.push(char); // 加入下一輪待考
+  }
+  renderMenu();
+
+  examQIdx++;
+  if (examQIdx < examQueue.length) {
+    setTimeout(showExamQuestion, 700);
+  } else {
+    // 本輪結束
+    if (examFailed.length > 0 && examRound < examMaxRounds) {
+      // 顯示輪次結算畫面
+      setTimeout(showRoundSummary, 600);
+    } else {
+      setTimeout(showExamFinalResult, 400);
+    }
+  }
+}
+
+// 顯示輪次結算
+function showRoundSummary() {
+  sfxPass();
+  document.getElementById('exam-question-panel').style.display = 'none';
+  document.getElementById('exam-result-panel').style.display   = 'none';
+  document.getElementById('exam-round-panel').style.display    = '';
+  document.getElementById('exam-body').scrollTo({top:0, behavior:'smooth'});
+
+  // 標題
+  document.getElementById('round-icon').textContent  = '📊';
+  document.getElementById('round-title').textContent = '第 ' + examRound + ' 輪結算';
+
+  // 統計本輪
+  var roundQueue = examQueue; // 本輪出題的字
+  var passedNow  = roundQueue.filter(function(c){
+    var r = examResults[c];
+    return r && r.passed && r.round === examRound;
+  });
+  var failedNow  = examFailed.slice(); // 本輪答錯的
+
+  document.getElementById('round-sub').textContent =
+    '答對 ' + passedNow.length + ' 個，還有 ' + failedNow.length + ' 個要再加油！';
+
+  // 答對區
+  var passSection = document.getElementById('round-pass-section');
+  var passGrid    = document.getElementById('round-pass-grid');
+  if (passedNow.length > 0) {
+    passSection.style.display = '';
+    passGrid.innerHTML = passedNow.map(function(c) {
+      var r = examResults[c];
+      var mark = r.mistakes === 0 ? '⭕' : '⭕';
+      var lbl  = r.mistakes === 0 ? '完美' : '通過';
+      var cls  = r.mistakes === 0 ? 'pass' : 'ok';
+      var lblCls = r.mistakes === 0 ? 'label-pass' : 'label-ok';
+      return '<div class="exam-score-item ' + cls + '">'
+        + '<div class="exam-score-glyph">' + c + '</div>'
+        + '<div style="font-size:1.6rem">' + mark + '</div>'
+        + '<div class="exam-score-label ' + lblCls + '">' + lbl + '</div>'
+        + '</div>';
+    }).join('');
+  } else {
+    passSection.style.display = 'none';
+  }
+
+  // 答錯區
+  var failSection = document.getElementById('round-fail-section');
+  var failGrid    = document.getElementById('round-fail-grid');
+  if (failedNow.length > 0) {
+    failSection.style.display = '';
+    failGrid.innerHTML = failedNow.map(function(c) {
+      return '<div class="exam-score-item fail">'
+        + '<div class="exam-score-glyph">' + c + '</div>'
+        + '<div style="font-size:1.6rem">✖</div>'
+        + '<div class="exam-score-label label-fail">再加油</div>'
+        + '</div>';
+    }).join('');
+  } else {
+    failSection.style.display = 'none';
+  }
+
+  // 下一輪按鈕
+  var nextRound = examRound + 1;
+  document.getElementById('btn-next-round-label').textContent = '開始第 ' + nextRound + ' 輪';
+}
+
+// 從結算畫面進入下一輪
+function doStartNextRound() {
+  sfxTap();
+  document.getElementById('exam-round-panel').style.display = 'none';
+  startNextRound();
+}
+
+function startNextRound() {
+  examRound++;
+  examQueue  = examFailed.slice().sort(function(){ return Math.random()-.5; });
+  examQIdx   = 0;
+  examFailed = [];
+
+  updateExamRoundBanner();
+  document.getElementById('exam-question-panel').style.display = '';
+  showExamQuestion();
+}
+
+function showExamFinalResult() {
+  sfxCelebrate();
+  document.getElementById('exam-progress-fill').style.width = '100%';
+  document.getElementById('exam-question-panel').style.display = 'none';
+  document.getElementById('exam-result-panel').style.display  = '';
+
+  // 整理成績（從 examResults 物件轉成陣列，按原始 chars 順序排列）
+  var resultArr = chars.map(function(c){
+    return examResults[c] || { char:c, round:examRound, mistakes:99, skipped:true, passed:false };
+  });
+  resultArr.forEach(function(r,i){ r.char = chars[i]; });
+
+  var total   = resultArr.length;
+  var perfect = resultArr.filter(function(r){ return r.passed && r.mistakes===0; }).length;
+  var passed  = resultArr.filter(function(r){ return r.passed; }).length;
+
+  // 標題
+  var icon, title, sub;
+  if (perfect === total) {
+    icon='🏆'; title='全部滿分！';
+    sub = '每個字都一筆都沒錯！太厲害了！';
+  } else if (passed === total) {
+    icon='🎉'; title='全部通過！';
+    sub = examRound > 1
+      ? '經過 '+examRound+' 輪，全部字都過關了！'
+      : '第一輪就全部通過，很棒！';
+  } else if (passed >= Math.ceil(total*0.6)) {
+    icon='👍'; title='通過測驗！';
+    sub = total+'個字中，'+passed+' 個通過！未通過的字要繼續練習。';
+  } else {
+    icon='💪'; title='繼續加油！';
+    sub = '多練習幾次，你一定可以的！';
+  }
+  document.getElementById('exam-score-icon').textContent  = icon;
+  document.getElementById('exam-score-title').textContent = title;
+  document.getElementById('exam-score-sub').textContent   = sub;
+
+  // 成績格：顯示每個字的結果，含輪次資訊
+  var grid = document.getElementById('exam-score-grid');
+  grid.innerHTML = resultArr.map(function(r) {
+    var cls, mark, lbl, lblCls;
+    if (!r.passed && r.skipped) {
+      cls='skip'; mark='—'; lbl='未作答'; lblCls='label-skip';
+    } else if (r.passed && r.mistakes === 0) {
+      cls='pass'; mark='⭕'; lbl='完美'; lblCls='label-pass';
+    } else if (r.passed) {
+      cls='ok'; mark='⭕'; lbl='通過'; lblCls='label-ok';
+    } else {
+      cls='fail'; mark='✖'; lbl='再練習'; lblCls='label-fail';
+    }
+    // 超過第一輪才顯示輪次
+    var roundTag = r.round > 1
+      ? '<div style="font-size:.6rem;color:var(--muted);font-weight:700">第'+r.round+'輪</div>'
+      : '';
+    return '<div class="exam-score-item '+cls+'">'
+      +'<div class="exam-score-glyph">'+r.char+'</div>'
+      +'<div style="font-size:1.6rem">'+mark+'</div>'
+      + roundTag
+      +'<div class="exam-score-label '+lblCls+'">'+lbl+'</div>'
+      +'</div>';
+  }).join('');
+
+  document.getElementById('exam-body').scrollTo({top:0,behavior:'smooth'});
+}
+
+function abortExam() {
+  sfxTap();
+  if (examQWriter) { try { examQWriter.cancelQuiz(); } catch(e){} }
+  goTo('menu');
+}
+
+
+// 全部完成：先閃爍3次，再持續呼吸，按下停止
+function pulseExamBtn() {
+  var btn = document.getElementById('btn-start-exam');
+  if (!btn) return;
+
+  // 先做閃爍
+  btn.classList.remove('btn-exam-pulse','btn-exam-breathe');
+  void btn.offsetWidth;
+  btn.classList.add('btn-exam-pulse');
+
+  // 閃爍結束後（3 × 0.7s = 2.1s）轉成持續呼吸
+  setTimeout(function(){
+    btn.classList.remove('btn-exam-pulse');
+    void btn.offsetWidth;
+    btn.classList.add('btn-exam-breathe');
+  }, 2200);
+
+  // 按下時停止
+  function stopGlow() {
+    btn.classList.remove('btn-exam-pulse','btn-exam-breathe');
+    btn.removeEventListener('click', stopGlow);
+  }
+  btn.addEventListener('click', stopGlow);
 }
 
 // ═══════════════════════════════════════
