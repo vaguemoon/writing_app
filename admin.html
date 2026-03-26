@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>太平國小｜教師管理後台</title>
-<script src="https://cdn.jsdelivr.net/npm/firebase@10.12.0/firebase-app-compat.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/firebase@10.12.0/firebase-firestore-compat.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
 
@@ -887,13 +887,20 @@ function loadVersions() {
       return;
     }
 
-    wrap.innerHTML = allVersions.map(function(v) {
-      return '<div class="version-item" id="vi-'+v.id+'" onclick="browseVersion(''+v.id+'',''+v.name.replace(/'/g,"\'")+'')">'
-        +'<div class="version-name">📚 '+v.name+'</div>'
+    // 用 DOM 方式建立元素，完全避開 onclick 引號衝突
+    wrap.innerHTML = '';
+    allVersions.forEach(function(v) {
+      var div = document.createElement('div');
+      div.className = 'version-item';
+      div.id = 'vi-' + v.id;
+      div.innerHTML = '<div class="version-name">📚 '+v.name+'</div>'
         +'<div class="version-meta">'+v.lessonCount+' 課</div>'
-        +'<div style="font-size:.8rem;color:var(--blue);font-weight:700">查看 →</div>'
-        +'</div>';
-    }).join('');
+        +'<div style="font-size:.8rem;color:var(--blue);font-weight:700">查看 →</div>';
+      div.addEventListener('click', (function(id, name){
+        return function(){ browseVersion(id, name); };
+      })(v.id, v.name));
+      wrap.appendChild(div);
+    });
   }).catch(function(e) {
     wrap.innerHTML = '<div style="color:var(--red);font-size:.88rem">載入失敗。</div>';
   });
@@ -925,9 +932,7 @@ function addVersion() {
 // ── 刪除版本 ──
 function deleteVersion() {
   if (!currentVersionId) return;
-  if (!confirm('確定要刪除「'+currentVersionName+'」的所有課程資料嗎？
-
-此操作無法復原！')) return;
+  if (!confirm('確定要刪除「'+currentVersionName+'」的所有課程資料嗎？\n\n此操作無法復原！')) return;
   db.collection('curriculum').doc(currentVersionId).delete().then(function() {
     showToast('🗑 已刪除「'+currentVersionName+'」。');
     currentVersionId = null;
@@ -970,22 +975,30 @@ function browseVersion(versionId, versionName) {
         var entry = Object.assign({ id: doc.id }, d); books[d.bookNum].push(entry);
       });
 
-      var html = '';
+      var container = document.getElementById('curriculum-content');
+      container.innerHTML = '';
       Object.keys(books).sort(function(a,b){ return a-b; }).forEach(function(bk) {
-        html += '<div class="book-section">'
-          +'<div class="book-title">第 '+bk+' 冊</div>';
+        var bookDiv = document.createElement('div');
+        bookDiv.className = 'book-section';
+        bookDiv.innerHTML = '<div class="book-title">第 '+bk+' 冊</div>';
         books[bk].forEach(function(lesson) {
-          html += '<div class="lesson-item">'
-            +'<div class="lesson-num">第'+lesson.lessonNum+'課</div>'
+          var row = document.createElement('div');
+          row.className = 'lesson-item';
+          row.innerHTML = '<div class="lesson-num">第'+lesson.lessonNum+'課</div>'
             +'<div class="lesson-name">'+lesson.name+'</div>'
             +'<div class="lesson-chars">'+lesson.chars.join('')+'</div>'
-            +'<div class="lesson-actions">'
-            +'<button class="btn-tiny" onclick="deleteLesson(''+versionId+'',''+lesson.id+'')">🗑</button>'
-            +'</div></div>';
+            +'<div class="lesson-actions"></div>';
+          var delBtn = document.createElement('button');
+          delBtn.className = 'btn-tiny';
+          delBtn.textContent = '🗑';
+          delBtn.addEventListener('click', (function(vid, lid){
+            return function(){ deleteLesson(vid, lid); };
+          })(versionId, lesson.id));
+          row.querySelector('.lesson-actions').appendChild(delBtn);
+          bookDiv.appendChild(row);
         });
-        html += '</div>';
+        container.appendChild(bookDiv);
       });
-      document.getElementById('curriculum-content').innerHTML = html;
     });
 }
 
@@ -1013,9 +1026,7 @@ function onCSVSelected() {
 }
 
 function parseCSV(text) {
-  var lines = text.split(/
-?
-/).filter(function(l){ return l.trim(); });
+  var lines = text.split(/\r?\n/).filter(function(l){ return l.trim(); });
   if (!lines.length) { showToast('CSV 檔案是空的！'); return; }
 
   // 跳過標題行
