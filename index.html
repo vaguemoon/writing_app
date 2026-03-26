@@ -1479,7 +1479,7 @@ function doLogout() {
 
 // ── 登入/註冊 切換 ──
 // ── 教師入口 ──
-var ADMIN_PASSWORD = '381418';  // 可自行修改
+var ADMIN_PASSWORD = '381418';
 
 function toggleTeacherEntry() {
   var el = document.getElementById('teacher-entry');
@@ -1495,7 +1495,8 @@ function doTeacherLogin() {
   var pwd = document.getElementById('teacher-pwd').value;
   var err = document.getElementById('teacher-error');
   if (pwd === ADMIN_PASSWORD) {
-    // 跳到後台頁面
+    // 把登入憑證存在 sessionStorage，admin.html 讀取後直接跳過登入
+    sessionStorage.setItem('adminAuth', ADMIN_PASSWORD);
     window.location.href = 'admin.html';
   } else {
     err.style.display = 'block';

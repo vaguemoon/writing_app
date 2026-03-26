@@ -37,40 +37,7 @@ body {
   min-height:100vh;
 }
 
-/* ══ 登入畫面 ══ */
-#login-screen {
-  min-height:100vh; display:flex; align-items:center; justify-content:center;
-  background:linear-gradient(135deg,#1e3a8a 0%,#2563eb 50%,#3b82f6 100%);
-  padding:24px;
-}
-.login-box {
-  background:white; border-radius:20px; padding:40px 36px;
-  width:100%; max-width:400px;
-  box-shadow:0 20px 60px rgba(0,0,0,.2);
-}
-.login-logo { text-align:center; margin-bottom:28px; }
-.login-logo-icon { font-size:3rem; margin-bottom:8px; }
-.login-school { font-size:.85rem; color:var(--muted); font-weight:700; letter-spacing:1px; }
-.login-title  { font-size:1.5rem; font-weight:900; color:var(--blue-dk); margin-top:4px; }
-.login-field  { margin-bottom:18px; }
-.login-label  { font-size:.8rem; font-weight:800; color:var(--gray); display:block; margin-bottom:6px; }
-.login-input  {
-  width:100%; border:2px solid var(--border); border-radius:10px;
-  padding:12px 14px; font-size:1rem; font-family:inherit;
-  outline:none; transition:border-color .2s; color:var(--text);
-}
-.login-input:focus { border-color:var(--blue); }
-.login-btn {
-  width:100%; padding:13px; border:none; border-radius:10px;
-  background:linear-gradient(135deg,var(--blue),var(--blue-dk));
-  color:white; font-size:1rem; font-weight:800; cursor:pointer;
-  font-family:inherit; transition:all .15s;
-  box-shadow:0 4px 12px rgba(37,99,235,.35);
-}
-.login-btn:hover  { transform:translateY(-1px); box-shadow:0 6px 16px rgba(37,99,235,.4); }
-.login-btn:active { transform:scale(.98); }
-.login-error { color:var(--red); font-size:.85rem; font-weight:700; margin-top:10px; text-align:center; display:none; }
-.login-error.show { display:block; }
+
 
 /* ══ 後台主畫面 ══ */
 #admin-screen { display:none; min-height:100vh; }
@@ -274,23 +241,7 @@ body {
 </head>
 <body>
 
-<!-- ══ 登入畫面 ══ -->
-<div id="login-screen">
-  <div class="login-box">
-    <div class="login-logo">
-      <div class="login-logo-icon">🏫</div>
-      <div class="login-school">臺東縣太平國小</div>
-      <div class="login-title">教師管理後台</div>
-    </div>
-    <div class="login-field">
-      <label class="login-label">管理員密碼</label>
-      <input class="login-input" id="admin-pwd" type="password"
-        placeholder="請輸入密碼" onkeydown="if(event.key==='Enter')doAdminLogin()">
-    </div>
-    <button class="login-btn" onclick="doAdminLogin()">登　入</button>
-    <div class="login-error" id="login-error">密碼錯誤，請再試一次。</div>
-  </div>
-</div>
+
 
 <!-- ══ 後台主畫面 ══ -->
 <div id="admin-screen">
@@ -422,9 +373,6 @@ var firebaseConfig = {
 
 var db = null;
 
-// ══ 固定管理員密碼（可自行修改） ══
-var ADMIN_PASSWORD = '381418';
-
 function initFirebase() {
   if (typeof firebase === 'undefined' || typeof firebase.firestore === 'undefined') {
     setTimeout(initFirebase, 150); return;
@@ -434,28 +382,20 @@ function initFirebase() {
     db = firebase.firestore();
   } catch(e) { setTimeout(initFirebase, 300); }
 }
-document.addEventListener('DOMContentLoaded', initFirebase);
-window.addEventListener('load', initFirebase);
-
-// ══ 登入 ══
-function doAdminLogin() {
-  var pwd = document.getElementById('admin-pwd').value;
-  var err = document.getElementById('login-error');
-  if (pwd === ADMIN_PASSWORD) {
-    document.getElementById('login-screen').style.display = 'none';
-    document.getElementById('admin-screen').style.display = '';
+window.addEventListener('load', function() {
+  initFirebase();
+  setTimeout(function() {
     loadStudents();
     loadCurrentLesson();
-  } else {
-    err.classList.add('show');
-    document.getElementById('admin-pwd').value = '';
-  }
-}
+  }, 600);
+});
+document.addEventListener('DOMContentLoaded', initFirebase);
+
+// ══ 登入 ══
+
 
 function doLogout() {
-  document.getElementById('admin-screen').style.display = 'none';
-  document.getElementById('login-screen').style.display = '';
-  document.getElementById('admin-pwd').value = '';
+  window.location.href = 'index.html';
 }
 
 // ══ 分頁切換 ══
