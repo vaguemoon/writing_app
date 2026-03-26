@@ -340,66 +340,74 @@ body {
 
 /* 結果面板 */
 .result-panel {
-  display:none; flex-direction:column; align-items:center; gap:14px;
+  display:none; flex-direction:column; align-items:center; gap:16px;
   background:var(--white); border-radius:var(--radius);
   padding:20px; box-shadow:var(--shadow); width:100%; max-width:600px;
 }
 .result-panel.show { display:flex; animation:popIn .4s cubic-bezier(.34,1.56,.64,1); }
-.result-compare {
-  display:flex; gap:18px; align-items:center; flex-wrap:wrap; justify-content:center;
+
+/* 疊加對比格：學生筆跡 + 標準字重疊顯示 */
+.overlay-wrap {
+  position:relative; flex-shrink:0;
+  border:3px solid #c8d8ec; border-radius:18px; overflow:hidden;
+  background-color:white;
+  background-image:
+    linear-gradient(to right, rgba(200,216,236,.45) 1px,transparent 1px),
+    linear-gradient(to bottom,rgba(200,216,236,.45) 1px,transparent 1px),
+    linear-gradient(to right, #c8d8ec 1px,transparent 1px),
+    linear-gradient(to bottom,#c8d8ec 1px,transparent 1px);
+  background-size:
+    calc(var(--grid)/9) calc(var(--grid)/9),
+    calc(var(--grid)/9) calc(var(--grid)/9),
+    33.333% 33.333%, 33.333% 33.333%;
 }
-.result-col  { display:flex; flex-direction:column; align-items:center; gap:6px; }
-.result-lbl  { font-size:.8rem; font-weight:800; color:var(--muted); }
-.result-img  { width:140px; height:140px; border-radius:12px; border:3px solid #c8d8ec; background:white; }
-.result-ref  {
-  width:140px; height:140px; border-radius:12px; border:3px solid #c8d8ec;
+/* 學生筆跡層（底層） */
+#overlay-student {
+  display:block; width:var(--grid); height:var(--grid);
+}
+/* 標準字疊加層（絕對定位在上方，半透明紅色） */
+#overlay-ref {
+  position:absolute; inset:0; pointer-events:none;
   display:flex; align-items:center; justify-content:center;
-  font-size:6rem; font-family:'Noto Serif TC',serif; font-weight:900;
-  background-image:linear-gradient(to right,#c8d8ec 1px,transparent 1px),linear-gradient(to bottom,#c8d8ec 1px,transparent 1px);
-  background-size:33.333% 33.333%,33.333% 33.333%;
+  font-size:calc(var(--grid) * 0.75);
+  font-family:'Noto Serif TC',serif; font-weight:900;
+  color:rgba(232,68,68,0.35);
+  line-height:1;
 }
-.score-wrap  { width:100%; max-width:340px; }
-.score-label { font-size:.85rem; font-weight:800; color:var(--muted); margin-bottom:6px; text-align:center; }
-.score-track {
-  height:24px; background:#eee; border-radius:20px; overflow:hidden;
-  box-shadow:inset 0 2px 6px rgba(0,0,0,.08);
+.overlay-legend {
+  display:flex; gap:16px; justify-content:center; flex-wrap:wrap;
+  font-size:.8rem; font-weight:700;
 }
-.score-fill {
-  height:100%; border-radius:20px;
-  transition:width .9s cubic-bezier(.34,1.56,.64,1);
-  display:flex; align-items:center; justify-content:flex-end; padding-right:10px;
-  font-size:.8rem; font-weight:900; color:white; min-width:44px;
-}
-.score-fill.great { background:linear-gradient(90deg,#52c97a,#30b060); }
-.score-fill.ok    { background:linear-gradient(90deg,#ffd54f,#ffb300); }
-.score-fill.retry { background:linear-gradient(90deg,#ff8c42,#e84444); }
-.verdict-text {
-  font-size:1.1rem; font-weight:900; padding:12px 20px;
-  border-radius:14px; text-align:center; width:100%;
-}
-.vt-great { background:#e8f8ee; color:var(--green-dk); }
-.vt-ok    { background:#fff8e1; color:#8a6200; }
-.vt-retry { background:#fff0f0; color:var(--red); }
+.legend-item { display:flex; align-items:center; gap:5px; }
+.legend-dot  { width:14px; height:14px; border-radius:50%; flex-shrink:0; }
 
-/* 70% 未達標提示 */
-.pass-hint {
-  font-size:.82rem; font-weight:800; color:var(--red);
-  background:#fff0f0; border-radius:10px; padding:8px 14px;
-  text-align:center; display:none;
+/* 自評按鈕 */
+.self-eval-title {
+  font-size:.92rem; font-weight:900; color:var(--text); text-align:center;
 }
-.pass-hint.show { display:block; }
+.self-eval-btns {
+  display:flex; gap:10px; flex-wrap:wrap; justify-content:center; width:100%;
+}
+.btn-eval {
+  flex:1; min-width:120px;
+  padding:20px 10px; border-radius:20px; border:none;
+  font-family:'Nunito','Noto Sans TC',sans-serif;
+  font-size:1.3rem; font-weight:900; cursor:pointer; transition:all .15s;
+  display:flex; flex-direction:column; align-items:center; gap:8px;
+  box-shadow:0 4px 16px rgba(0,0,0,.12);
+}
+.btn-eval:active { transform:scale(.93); }
+.btn-eval-icon  { font-size:2.6rem; }
+.btn-eval-great { background:#e8f8ee; color:var(--green-dk); border:3px solid var(--green); }
+.btn-eval-retry { background:#fff0f0; color:var(--red);      border:3px solid #ffb3b3; }
 
-.result-btns { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; }
-.btn-result {
+.result-retry-btn {
   padding:11px 22px; border-radius:12px; border:none;
   font-family:'Nunito','Noto Sans TC',sans-serif;
-  font-size:.92rem; font-weight:800; cursor:pointer; transition:all .15s; min-width:120px;
+  font-size:.92rem; font-weight:800; cursor:pointer; transition:all .15s;
+  background:#fff3e0; color:var(--orange);
 }
-.btn-result:active { transform:scale(.96); }
-.btn-result-retry { background:#fff3e0; color:var(--orange); }
-.btn-result-prac  { background:var(--blue-lt); color:var(--blue-dk); }
-.btn-result-next  { background:var(--blue); color:white; }
-.btn-result-next:disabled { background:#b0c8e8; cursor:not-allowed; opacity:.7; }
+.result-retry-btn:active { transform:scale(.96); }
 
 /* ══ 底部大按鈕（練習模式：全寬；默寫模式：右下角浮動） ══ */
 
@@ -554,31 +562,56 @@ body {
           <button class="btn-ctrl btn-clear" onclick="clearDictCanvas()">🗑 清除重寫</button>
         </div>
 
-        <!-- 結果面板 -->
+        <!-- 結果面板：疊加對比 + 學生自評 -->
         <div class="result-panel" id="result-panel">
-          <div style="font-size:1rem;font-weight:900">📊 對照結果</div>
-          <div class="result-compare">
-            <div class="result-col">
-              <div class="result-lbl">✍️ 你寫的</div>
-              <canvas class="result-img" id="result-student" width="140" height="140"></canvas>
+          <div style="font-size:1rem;font-weight:900;text-align:center">
+            ✏️ 對照結果<br>
+            <span style="font-size:.8rem;font-weight:600;color:var(--muted)">黑色＝你寫的　紅色＝正確字</span>
+          </div>
+
+          <!-- 疊加格：學生筆跡 + 標準字半透明疊加 -->
+          <div class="overlay-wrap" id="overlay-wrap">
+            <canvas id="overlay-student"></canvas>
+            <div id="overlay-ref"></div>
+          </div>
+
+          <div class="overlay-legend">
+            <div class="legend-item">
+              <div class="legend-dot" style="background:#1e2d3d"></div>
+              <span>你寫的筆跡</span>
             </div>
-            <div style="font-size:1.8rem">↔</div>
-            <div class="result-col">
-              <div class="result-lbl">📖 正確字形</div>
-              <div class="result-ref" id="result-answer"></div>
+            <div class="legend-item">
+              <div class="legend-dot" style="background:rgba(232,68,68,0.5)"></div>
+              <span>正確字形</span>
             </div>
           </div>
-          <div class="score-wrap">
-            <div class="score-label" id="score-label">計算中...</div>
-            <div class="score-track">
-              <div class="score-fill" id="score-fill" style="width:0%"></div>
-            </div>
+
+          <!-- 學生自評：兩個大按鈕 -->
+          <div class="self-eval-title">你覺得寫得像嗎？</div>
+          <div class="self-eval-btns">
+            <button class="btn-eval btn-eval-great" onclick="selfEval('great')">
+              <span class="btn-eval-icon">⭕</span><span>像！</span>
+            </button>
+            <button class="btn-eval btn-eval-retry" onclick="selfEval('retry')">
+              <span class="btn-eval-icon">✖</span><span>不像</span>
+            </button>
           </div>
-          <div class="verdict-text" id="verdict-text"></div>
-          <div class="pass-hint" id="pass-hint">⚠️ 相似度需達到 70% 才能進到下一個字，再試一次吧！</div>
-          <div class="result-btns">
-            <button class="btn-result btn-result-retry" onclick="retryDict()">🔄 再寫一次</button>
-            <button class="btn-result btn-result-next"  id="btn-dict-next" onclick="nextChar()">下一個字 →</button>
+
+          <!-- 評完後：像 → 顯示慶祝＋下一個字 -->
+          <div id="after-eval" style="display:none;flex-direction:column;align-items:center;gap:12px;width:100%">
+            <div id="eval-verdict" style="border-radius:14px;padding:14px 20px;text-align:center;font-size:1.2rem;font-weight:900;width:100%"></div>
+            <button class="btn-big btn-big-prac" id="btn-dict-next" onclick="nextChar()"
+              style="max-width:320px;font-size:1.1rem">
+              <span class="btn-big-icon">➡️</span><span>下一個字</span>
+            </button>
+          </div>
+
+          <!-- 評完後：不像 → 只有一個大按鈕「再練習一次」 -->
+          <div id="retry-only-btn" style="display:none;width:100%">
+            <button class="btn-big btn-big-exam" onclick="switchToPractice()"
+              style="font-size:1.1rem">
+              <span class="btn-big-icon">✏️</span><span>再練習一次</span>
+            </button>
           </div>
         </div>
 
@@ -1025,206 +1058,66 @@ function submitDictation() {
   for (var i=3;i<px.length;i+=4){ if(px[i]>20){hasInk=true;break;} }
   if (!hasInk) { showToast('📝 還沒寫喔！請先在格子裡寫字！'); return; }
 
-  // 縮圖到結果欄
-  var rc = document.getElementById('result-student');
-  rc.getContext('2d').clearRect(0,0,140,140);
-  rc.getContext('2d').drawImage(dCanvas,0,0,140,140);
-  document.getElementById('result-answer').textContent = char;
+  // 把學生筆跡複製到疊加格 canvas
+  var oc = document.getElementById('overlay-student');
+  oc.width  = dCanvas.width;
+  oc.height = dCanvas.height;
+  oc.style.width  = 'var(--grid)';
+  oc.style.height = 'var(--grid)';
+  oc.getContext('2d').drawImage(dCanvas, 0, 0);
 
-  computeSimilarity(char, dCanvas, function(score){
-    dictScore = score;
-    showResult(score, char);
-  });
-}
+  // 疊加標準字（半透明紅色）
+  var ref = document.getElementById('overlay-ref');
+  ref.textContent = char;
 
-// ── 相似度計算 v4 ──
-// 修正：先掃描 medians 所有點的實際邊界框，再做縮放對齊
-// 這樣不管字形在 HanziWriter 座標系的哪個位置，都能正確對齊到 canvas 中央
-
-function computeSimilarity(char, studentCanvas, callback) {
-  var SIZE = 256;
-  var PAD  = 24;
-
-  HanziWriter.loadCharacterData(char).then(function(data) {
-    if (!data || !data.medians || !data.medians.length) { callback(0); return; }
-
-    // ── 步驟 1：掃描所有 medians 點，取得實際邊界框 ──
-    var minX =  Infinity, minY =  Infinity;
-    var maxX = -Infinity, maxY = -Infinity;
-    data.medians.forEach(function(pts) {
-      pts.forEach(function(pt) {
-        if (pt[0] < minX) minX = pt[0];
-        if (pt[0] > maxX) maxX = pt[0];
-        if (pt[1] < minY) minY = pt[1];
-        if (pt[1] > maxY) maxY = pt[1];
-      });
-    });
-    var bboxW = maxX - minX || 1;
-    var bboxH = maxY - minY || 1;
-    // 保持等比例，取較大的邊做縮放
-    var bboxMax = Math.max(bboxW, bboxH);
-    var inner   = SIZE - PAD * 2;
-    var scale   = inner / bboxMax;
-    // 置中偏移：讓字形水平/垂直都置中
-    var offX = PAD + (inner - bboxW * scale) / 2;
-    var offY = PAD + (inner - bboxH * scale) / 2;
-    var strokeW = Math.max(10, Math.round(inner * 0.06));
-
-    // ── 步驟 2：畫參考字（medians 粗線，Y 翻轉對齊 canvas 座標） ──
-    var refC = document.createElement('canvas');
-    refC.width = refC.height = SIZE;
-    var refX = refC.getContext('2d');
-    refX.fillStyle = '#ffffff';
-    refX.fillRect(0, 0, SIZE, SIZE);
-    refX.strokeStyle = '#000000';
-    refX.lineWidth   = strokeW;
-    refX.lineCap     = 'round';
-    refX.lineJoin    = 'round';
-
-    data.medians.forEach(function(pts) {
-      if (!pts || pts.length < 1) return;
-      refX.beginPath();
-      pts.forEach(function(pt, pi) {
-        // X：左→右正常
-        // Y：HanziWriter Y 朝上，canvas Y 朝下，需翻轉
-        //   先把 y 相對 minY 歸零，乘 scale，再翻轉
-        var cx = offX + (pt[0] - minX) * scale;
-        var cy = offY + (bboxH - (pt[1] - minY)) * scale;
-        if (pi === 0) refX.moveTo(cx, cy);
-        else          refX.lineTo(cx, cy);
-      });
-      refX.stroke();
-    });
-
-    // ── 步驟 3：學生筆跡 canvas（縮放到同尺寸） ──
-    var stuC = document.createElement('canvas');
-    stuC.width = stuC.height = SIZE;
-    var stuX = stuC.getContext('2d');
-    stuX.fillStyle = '#ffffff';
-    stuX.fillRect(0, 0, SIZE, SIZE);
-    stuX.drawImage(studentCanvas, 0, 0, SIZE, SIZE);
-
-    // ── 步驟 4：對學生筆跡做 blur 膨脹，讓比對更寬容 ──
-    var dilC = document.createElement('canvas');
-    dilC.width = dilC.height = SIZE;
-    var dilX = dilC.getContext('2d');
-    var blurR = Math.round(strokeW * 0.5);
-    dilX.filter = 'blur(' + blurR + 'px)';
-    dilX.drawImage(stuC, 0, 0);
-    dilX.filter = 'none';
-
-    // 同樣對參考字 blur，讓邊緣更寬容
-    var refBlurC = document.createElement('canvas');
-    refBlurC.width = refBlurC.height = SIZE;
-    var rbX = refBlurC.getContext('2d');
-    rbX.filter = 'blur(' + blurR + 'px)';
-    rbX.drawImage(refC, 0, 0);
-    rbX.filter = 'none';
-
-    // ── 步驟 5：Jaccard 比對（兩邊都 blur 後比） ──
-    var refPx = rbX.getImageData(0, 0, SIZE, SIZE).data;
-    var stuPx = dilX.getImageData(0, 0, SIZE, SIZE).data;
-    var inter = 0, union = 0;
-    for (var i = 0; i < refPx.length; i += 4) {
-      var refInk = refPx[i + 3] > 20;   // 參考字模糊後 alpha
-      var stuInk = stuPx[i + 3] > 20;   // 學生筆跡模糊後 alpha
-      if (refInk || stuInk) union++;
-      if (refInk && stuInk) inter++;
-    }
-    var raw   = union > 0 ? (inter / union) : 0;
-    // 線條 vs 線條比對，Jaccard 仍偏低，做適度放大
-    var score = Math.min(100, Math.round(raw * 180));
-
-    // ── DEBUG：顯示兩張比對圖 ──
-    var dbgWrap = document.getElementById('debug-canvases');
-    if (!dbgWrap) {
-      dbgWrap = document.createElement('div');
-      dbgWrap.id = 'debug-canvases';
-      dbgWrap.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:8px';
-      var rp = document.getElementById('result-panel');
-      if (rp) rp.appendChild(dbgWrap);
-    }
-    // 建立兩個顯示用 canvas 並複製數據
-    function makeDbgCanvas(src, label) {
-      var dc = document.createElement('canvas');
-      dc.width = dc.height = SIZE;
-      dc.style.cssText = 'width:120px;height:120px;border:2px solid #c8d8ec;border-radius:8px';
-      dc.getContext('2d').drawImage(src, 0, 0);
-      return '<div style="text-align:center"><div style="font-size:.68rem;color:#aaa;margin-bottom:3px">'
-        + label + '</div>' + dc.outerHTML + '</div>';
-    }
-    dbgWrap.innerHTML = makeDbgCanvas(refC,  '參考字（程式看到的）')
-                      + makeDbgCanvas(stuC,  '學生筆跡');
-    // outerHTML 不帶像素，要手動複製
-    var nodes = dbgWrap.querySelectorAll('canvas');
-    if (nodes[0]) nodes[0].getContext('2d').drawImage(refC, 0, 0, SIZE, SIZE, 0, 0, SIZE, SIZE);
-    if (nodes[1]) nodes[1].getContext('2d').drawImage(stuC, 0, 0, SIZE, SIZE, 0, 0, SIZE, SIZE);
-
-    console.log('bbox:', minX, minY, maxX, maxY,
-      '| scale:', scale.toFixed(3),
-      '| raw:', raw.toFixed(4), '| score:', score,
-      '| inter:', inter, '| union:', union);
-
-    callback(score);
-
-  }).catch(function(err) {
-    console.warn('loadCharacterData error:', err);
-    callback(0);
-  });
-}
-
-function showResult(score, char) {
-  var fill    = document.getElementById('score-fill');
-  var lbl     = document.getElementById('score-label');
-  var verdict = document.getElementById('verdict-text');
-  var nextBtn = document.getElementById('btn-dict-next');
-  var hint    = document.getElementById('pass-hint');
-  var pct     = Math.min(score,100);
-
-  setTimeout(function(){ fill.style.width=pct+'%'; fill.textContent=pct+'%'; },100);
-
-  // 70% 才算過關
-  var passed = score >= 70;
-
-  if (score >= 70) {
-    fill.className='score-fill great';
-    lbl.textContent='相似度：'+score+'%（很像！）';
-    verdict.className='verdict-text vt-great';
-    verdict.innerHTML='🎉 寫得很棒！跟正確字形很像！';
-    addStars(5); charStatus[char]='mastered';
-    sfxCelebrate(); showToast('⭐ 太棒了！+5 顆星！');
-  } else if (score >= 40) {
-    fill.className='score-fill ok';
-    lbl.textContent='相似度：'+score+'%（再加油）';
-    verdict.className='verdict-text vt-ok';
-    verdict.innerHTML='💪 不錯喔！再多練習更像！';
-    addStars(2); charStatus[char]='practiced';
-    sfxPass();
-  } else {
-    fill.className='score-fill retry';
-    lbl.textContent='相似度：'+score+'%（需要加油）';
-    verdict.className='verdict-text vt-retry';
-    verdict.innerHTML='📝 跟正確字差很多，先去練習再試試！';
-    sfxWrong();
-    charStatus[char]='practiced';
-  }
-
-  // 下一個字按鈕：未達 70% 則鎖定
-  nextBtn.disabled = !passed;
-  hint.classList.toggle('show', !passed);
+  // 重置自評區
+  document.getElementById('after-eval').style.display = 'none';
+  var btns = document.querySelectorAll('.btn-eval');
+  btns.forEach(function(b){ b.style.opacity='1'; b.disabled=false; });
 
   document.getElementById('result-panel').classList.add('show');
-  renderMenu();
+  sfxSwipe();
 
   setTimeout(function(){
     var rp = document.getElementById('result-panel');
-    if (rp) rp.scrollIntoView({behavior:'smooth',block:'center'});
-  },200);
+    if (rp) rp.scrollIntoView({behavior:'smooth', block:'center'});
+  }, 200);
 }
 
-// ═══════════════════════════════════════
-//  下一個字
-// ═══════════════════════════════════════
+// 學生自評（只有兩個選項）
+function selfEval(result) {
+  sfxTap();
+  var char = chars[currentIdx];
+
+  // 鎖定自評按鈕避免重複點
+  document.querySelectorAll('.btn-eval').forEach(function(b){
+    b.disabled = true; b.style.opacity = '.4';
+  });
+
+  if (result === 'great') {
+    // 像：顯示慶祝訊息 + 下一個字按鈕
+    sfxCelebrate();
+    charStatus[char] = 'mastered';
+    addStars(5);
+    var ae = document.getElementById('after-eval');
+    var vt = document.getElementById('eval-verdict');
+    ae.style.display = 'flex';
+    vt.style.cssText = 'border-radius:14px;padding:14px 20px;text-align:center;font-size:1.2rem;font-weight:900;width:100%;background:#e8f8ee;color:var(--green-dk)';
+    vt.innerHTML = '🎉 太棒了！+5 顆星！';
+    showToast('⭐ 太棒了！+5 顆星！');
+    document.getElementById('btn-dict-next').style.display = '';
+    document.getElementById('retry-only-btn').style.display = 'none';
+  } else {
+    // 不像：只顯示「再練習一次」大按鈕，隱藏其他所有操作
+    sfxWrong();
+    charStatus[char] = 'practiced';
+    document.getElementById('after-eval').style.display = 'none';
+    document.getElementById('retry-only-btn').style.display = '';
+  }
+  renderMenu();
+}
+
+
 function nextChar() {
   sfxTap();
   if (currentIdx < chars.length-1) {
