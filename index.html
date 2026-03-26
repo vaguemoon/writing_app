@@ -644,6 +644,37 @@ body {
 .exam-voice-label { font-size:1.1rem; font-weight:900; }
 .exam-voice-hint  { font-size:.8rem; font-weight:700; color:var(--muted); }
 
+/* ══ 生字選單進度概覽列 ══ */
+.menu-progress-bar {
+  margin:12px 16px 0;
+  background:white; border-radius:14px;
+  padding:14px 16px; box-shadow:var(--shadow);
+}
+.menu-progress-title {
+  font-size:.8rem; font-weight:800; color:var(--muted);
+  margin-bottom:10px;
+}
+.progress-track {
+  height:14px; background:#eef2f8; border-radius:20px;
+  overflow:hidden; display:flex;
+}
+.progress-seg {
+  height:100%; transition:width .6s cubic-bezier(.34,1.56,.64,1);
+}
+.progress-seg.mastered  { background:var(--green); }
+.progress-seg.practiced { background:var(--yellow); }
+.progress-seg.new       { background:#d0e4f5; }
+.progress-counts {
+  display:flex; gap:12px; margin-top:8px; flex-wrap:wrap;
+}
+.progress-count-item {
+  display:flex; align-items:center; gap:5px;
+  font-size:.78rem; font-weight:800;
+}
+.progress-count-dot {
+  width:10px; height:10px; border-radius:50%; flex-shrink:0;
+}
+
 /* ══ 生字選單底部測驗按鈕 ══ */
 .menu-exam-bar {
   position:sticky; bottom:0;
@@ -938,6 +969,17 @@ body {
       <div class="topbar-title">今天的<span>生字</span></div>
     </div>
   </div>
+  <!-- 進度概覽列 -->
+  <div class="menu-progress-bar" id="menu-progress-bar">
+    <div class="menu-progress-title">📊 今日學習進度</div>
+    <div class="progress-track">
+      <div class="progress-seg mastered"  id="prog-mastered"  style="width:0%"></div>
+      <div class="progress-seg practiced" id="prog-practiced" style="width:0%"></div>
+      <div class="progress-seg new"       id="prog-new"       style="width:100%"></div>
+    </div>
+    <div class="progress-counts" id="prog-counts"></div>
+  </div>
+
   <div class="menu-body" id="menu-body"></div>
   <!-- 測驗按鈕 -->
   <div class="menu-exam-bar">
@@ -1310,16 +1352,23 @@ function doLogin() {
   }
 
   var id = name + '_' + loginPin;
+  // 先確認學生存在，再讀取漢字進度
   db.collection('students').doc(id).get().then(function(doc) {
-    if (doc.exists) {
-      onLoginSuccess({ name:name, pin:loginPin, id:id }, doc.data());
-    } else {
+    if (!doc.exists) {
       sfxWrong();
       loginPin = '';
       updatePinDisplay('pd', loginPin);
       errEl.textContent = '找不到這個帳號，請確認姓名和 PIN 碼，或是先註冊。';
       errEl.classList.add('show');
+      return;
     }
+    // 讀取漢字學習進度
+    return db.collection('students').doc(id)
+      .collection('progress').doc('hanzi')
+      .get().then(function(progressDoc) {
+        var progressData = progressDoc.exists ? progressDoc.data() : { charStatus:{} };
+        onLoginSuccess({ name:name, pin:loginPin, id:id }, progressData);
+      });
   }).catch(function(e) {
     sfxWrong();
     errEl.textContent = '連線失敗，請檢查網路後再試。';
@@ -1421,11 +1470,16 @@ function doRegister() {
       errEl.classList.add('show');
     } else {
       // 建立新學生
+      // 建立學生基本資料（students/{id}）
       return db.collection('students').doc(id).set({
         name:      name,
         pin:       regPin,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-        charStatus:{}
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      }).then(function() {
+        // 建立漢字學習進度子集合（students/{id}/progress/hanzi）
+        return db.collection('students').doc(id)
+          .collection('progress').doc('hanzi')
+          .set({ charStatus:{}, lastSeen: firebase.firestore.FieldValue.serverTimestamp() });
       }).then(function() {
         sfxCelebrate();
         showToast('🎉 註冊成功！歡迎 ' + name + '！');
@@ -1443,11 +1497,23 @@ function doRegister() {
 // ═══════════════════════════════════════
 function saveProgress() {
   if (!currentStudent || !db) return;
-  db.collection('students').doc(currentStudent.id).update({
-    charStatus: charStatus,
-    lastSeen:   firebase.firestore.FieldValue.serverTimestamp()
-  }).catch(function(e){ console.warn('saveProgress error:', e); });
+  // 寫入漢字學習進度子集合
+  db.collection('students').doc(currentStudent.id)
+    .collection('progress').doc('hanzi')
+    .set({
+      charStatus: charStatus,
+      lastSeen:   firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge: true })
+    .catch(function(e){ console.warn('saveProgress error:', e); });
 }
+
+// ── 其他教學應用使用範例（未來新增時參考）──
+// function saveOtherAppProgress(appName, data) {
+//   if (!currentStudent || !db) return;
+//   db.collection('students').doc(currentStudent.id)
+//     .collection('progress').doc(appName)
+//     .set(data, { merge: true });
+// }
 
 // 存檔時機：每次 charStatus 更新後呼叫
 // 在 renderMenu 裡加入 saveProgress（每次狀態改變都存）
@@ -1612,9 +1678,43 @@ function startLesson() {
 // ═══════════════════════════════════════
 //  畫面二：生字選單
 // ═══════════════════════════════════════
+function updateProgressBar() {
+  if (!chars.length) return;
+  var total     = chars.length;
+  var nMastered  = chars.filter(function(c){ return charStatus[c]==='mastered'; }).length;
+  var nPracticed = chars.filter(function(c){ return charStatus[c]==='practiced'; }).length;
+  var nNew       = total - nMastered - nPracticed;
+
+  var pMastered  = Math.round(nMastered /total*100);
+  var pPracticed = Math.round(nPracticed/total*100);
+  var pNew       = 100 - pMastered - pPracticed;
+
+  var sm = document.getElementById('prog-mastered');
+  var sp = document.getElementById('prog-practiced');
+  var sn = document.getElementById('prog-new');
+  if (sm) sm.style.width = pMastered+'%';
+  if (sp) sp.style.width = pPracticed+'%';
+  if (sn) sn.style.width = pNew+'%';
+
+  var counts = document.getElementById('prog-counts');
+  if (counts) {
+    counts.innerHTML =
+      '<div class="progress-count-item">'
+      +'<div class="progress-count-dot" style="background:var(--green)"></div>'
+      +'<span style="color:var(--green-dk)">已掌握 '+nMastered+' 字</span></div>'
+      +'<div class="progress-count-item">'
+      +'<div class="progress-count-dot" style="background:var(--yellow)"></div>'
+      +'<span style="color:#b07800">練習中 '+nPracticed+' 字</span></div>'
+      +'<div class="progress-count-item">'
+      +'<div class="progress-count-dot" style="background:#d0e4f5"></div>'
+      +'<span style="color:var(--muted)">未學習 '+nNew+' 字</span></div>';
+  }
+}
+
 function renderMenu() {
   var body = document.getElementById('menu-body');
   saveProgress();
+  updateProgressBar();
   body.innerHTML = chars.map(function(c,i){
     var st  = charStatus[c]||'new';
     var lbl = {new:'尚未學習',practiced:'練習中',mastered:'已掌握'}[st];
