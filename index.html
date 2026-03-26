@@ -1400,8 +1400,32 @@ function onLoginSuccess(student, data) {
     badge.classList.add('show');
   }
 
-  showToast('👋 歡迎回來，' + student.name + '！');
-  goTo('home');
+  // 從 Firebase 載入教師設定的生字
+  loadLessonFromFirebase(function(lessonChars) {
+    if (lessonChars && lessonChars.length) {
+      // 自動套用教師設定的生字
+      var input = document.getElementById('char-input');
+      if (input) input.value = lessonChars.join('');
+      showToast('👋 歡迎 ' + student.name + '！今日生字已載入。');
+    } else {
+      showToast('👋 歡迎回來，' + student.name + '！');
+    }
+    goTo('home');
+  });
+}
+
+// 從 Firebase 讀取教師設定的生字
+function loadLessonFromFirebase(callback) {
+  if (!db) { callback(null); return; }
+  db.collection('settings').doc('lesson').get()
+    .then(function(doc) {
+      if (doc.exists && doc.data().chars && doc.data().chars.length) {
+        callback(doc.data().chars);
+      } else {
+        callback(null);
+      }
+    })
+    .catch(function() { callback(null); });
 }
 
 // ── 登出 ──

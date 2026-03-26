@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>太平國小｜教師管理後台</title>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
+
+:root {
+  --blue:    #2563eb;
+  --blue-lt: #eff6ff;
+  --blue-dk: #1e40af;
+  --green:   #16a34a;
+  --green-lt:#f0fdf4;
+  --yellow:  #ca8a04;
+  --yel-lt:  #fefce8;
+  --red:     #dc2626;
+  --red-lt:  #fef2f2;
+  --gray:    #64748b;
+  --gray-lt: #f8fafc;
+  --border:  #e2e8f0;
+  --text:    #0f172a;
+  --muted:   #94a3b8;
+  --white:   #ffffff;
+  --shadow:  0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.06);
+  --shadow-md: 0 4px 6px rgba(0,0,0,.07), 0 2px 4px rgba(0,0,0,.06);
+  --radius:  12px;
+}
+
+* { box-sizing:border-box; margin:0; padding:0; }
+body {
+  font-family:'Nunito','Noto Sans TC',sans-serif;
+  background:#f1f5f9; color:var(--text);
+  min-height:100vh;
+}
+
+/* ══ 登入畫面 ══ */
+#login-screen {
+  min-height:100vh; display:flex; align-items:center; justify-content:center;
+  background:linear-gradient(135deg,#1e3a8a 0%,#2563eb 50%,#3b82f6 100%);
+  padding:24px;
+}
+.login-box {
+  background:white; border-radius:20px; padding:40px 36px;
+  width:100%; max-width:400px;
+  box-shadow:0 20px 60px rgba(0,0,0,.2);
+}
+.login-logo { text-align:center; margin-bottom:28px; }
+.login-logo-icon { font-size:3rem; margin-bottom:8px; }
+.login-school { font-size:.85rem; color:var(--muted); font-weight:700; letter-spacing:1px; }
+.login-title  { font-size:1.5rem; font-weight:900; color:var(--blue-dk); margin-top:4px; }
+.login-field  { margin-bottom:18px; }
+.login-label  { font-size:.8rem; font-weight:800; color:var(--gray); display:block; margin-bottom:6px; }
+.login-input  {
+  width:100%; border:2px solid var(--border); border-radius:10px;
+  padding:12px 14px; font-size:1rem; font-family:inherit;
+  outline:none; transition:border-color .2s; color:var(--text);
+}
+.login-input:focus { border-color:var(--blue); }
+.login-btn {
+  width:100%; padding:13px; border:none; border-radius:10px;
+  background:linear-gradient(135deg,var(--blue),var(--blue-dk));
+  color:white; font-size:1rem; font-weight:800; cursor:pointer;
+  font-family:inherit; transition:all .15s;
+  box-shadow:0 4px 12px rgba(37,99,235,.35);
+}
+.login-btn:hover  { transform:translateY(-1px); box-shadow:0 6px 16px rgba(37,99,235,.4); }
+.login-btn:active { transform:scale(.98); }
+.login-error { color:var(--red); font-size:.85rem; font-weight:700; margin-top:10px; text-align:center; display:none; }
+.login-error.show { display:block; }
+
+/* ══ 後台主畫面 ══ */
+#admin-screen { display:none; min-height:100vh; }
+
+/* 頂部導覽列 */
+.admin-topbar {
+  background:white; border-bottom:1px solid var(--border);
+  padding:0 24px; height:60px;
+  display:flex; align-items:center; justify-content:space-between;
+  position:sticky; top:0; z-index:100;
+  box-shadow:var(--shadow);
+}
+.topbar-brand { display:flex; align-items:center; gap:10px; }
+.topbar-brand-icon { font-size:1.4rem; }
+.topbar-brand-name { font-size:1rem; font-weight:900; color:var(--blue-dk); }
+.topbar-brand-sub  { font-size:.72rem; color:var(--muted); font-weight:600; }
+.topbar-right { display:flex; align-items:center; gap:10px; }
+.btn-logout {
+  padding:7px 14px; border:1.5px solid var(--border); border-radius:8px;
+  background:white; font-size:.82rem; font-weight:700; cursor:pointer;
+  color:var(--gray); font-family:inherit; transition:all .15s;
+}
+.btn-logout:hover { border-color:var(--red); color:var(--red); }
+
+/* 主內容區 */
+.admin-main { padding:24px; max-width:1100px; margin:0 auto; }
+
+/* 分頁 Tab */
+.admin-tabs {
+  display:flex; gap:4px; background:white; padding:4px;
+  border-radius:12px; border:1px solid var(--border);
+  margin-bottom:20px; width:fit-content;
+}
+.admin-tab {
+  padding:9px 20px; border-radius:9px; border:none;
+  font-family:inherit; font-size:.88rem; font-weight:800;
+  cursor:pointer; transition:all .15s; color:var(--gray);
+  background:transparent;
+}
+.admin-tab.active { background:var(--blue); color:white; }
+
+/* 卡片 */
+.card {
+  background:white; border-radius:var(--radius);
+  border:1px solid var(--border); box-shadow:var(--shadow);
+  padding:20px;
+}
+.card-title {
+  font-size:1rem; font-weight:900; color:var(--text);
+  margin-bottom:16px; display:flex; align-items:center; gap:8px;
+}
+
+/* ══ 生字設定區 ══ */
+.lesson-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+@media(max-width:600px){ .lesson-grid { grid-template-columns:1fr; } }
+
+.lesson-input-area {
+  border:2px solid var(--border); border-radius:10px;
+  padding:14px 16px; font-size:1.3rem;
+  font-family:'Noto Sans TC',sans-serif;
+  width:100%; outline:none; letter-spacing:6px;
+  transition:border-color .2s; color:var(--text);
+  background:var(--gray-lt);
+}
+.lesson-input-area:focus { border-color:var(--blue); background:white; }
+
+.lesson-preview {
+  display:flex; gap:10px; flex-wrap:wrap; min-height:56px;
+  align-items:center; padding:10px 0;
+}
+.lesson-char-chip {
+  background:var(--blue-lt); color:var(--blue-dk);
+  border-radius:8px; padding:6px 12px;
+  font-size:1.4rem; font-family:'Noto Sans TC',serif; font-weight:900;
+  border:2px solid #bfdbfe;
+}
+.lesson-empty { color:var(--muted); font-size:.85rem; font-weight:600; }
+
+.btn-save-lesson {
+  padding:11px 24px; border:none; border-radius:10px;
+  background:linear-gradient(135deg,var(--green),#15803d);
+  color:white; font-size:.95rem; font-weight:800;
+  cursor:pointer; font-family:inherit; transition:all .15s;
+  display:flex; align-items:center; gap:7px;
+  box-shadow:0 3px 10px rgba(22,163,74,.3);
+}
+.btn-save-lesson:hover { transform:translateY(-1px); }
+.btn-save-lesson:active { transform:scale(.97); }
+
+.current-lesson-banner {
+  background:var(--green-lt); border:1.5px solid #86efac;
+  border-radius:10px; padding:12px 16px;
+  display:flex; align-items:center; gap:10px;
+  font-size:.88rem; font-weight:700; color:var(--green);
+}
+
+/* ══ 班級總覽 ══ */
+.stats-row {
+  display:grid; grid-template-columns:repeat(3,1fr); gap:12px;
+  margin-bottom:20px;
+}
+@media(max-width:500px){ .stats-row { grid-template-columns:1fr 1fr; } }
+.stat-card {
+  background:white; border-radius:var(--radius);
+  border:1px solid var(--border); padding:16px;
+  text-align:center;
+}
+.stat-num  { font-size:2rem; font-weight:900; line-height:1; }
+.stat-lbl  { font-size:.75rem; font-weight:700; color:var(--muted); margin-top:4px; }
+.stat-blue   .stat-num { color:var(--blue); }
+.stat-green  .stat-num { color:var(--green); }
+.stat-yellow .stat-num { color:var(--yellow); }
+
+/* 學生列表 */
+.student-table { width:100%; border-collapse:collapse; }
+.student-table th {
+  text-align:left; font-size:.75rem; font-weight:800;
+  color:var(--muted); padding:8px 12px;
+  border-bottom:2px solid var(--border);
+  text-transform:uppercase; letter-spacing:.5px;
+}
+.student-table td {
+  padding:12px; border-bottom:1px solid var(--border);
+  font-size:.9rem; font-weight:600;
+  vertical-align:middle;
+}
+.student-table tr:last-child td { border-bottom:none; }
+.student-table tr:hover td { background:#f8fafc; cursor:pointer; }
+
+.progress-mini {
+  height:8px; background:#e2e8f0; border-radius:20px;
+  overflow:hidden; width:120px; display:inline-block;
+}
+.progress-mini-fill { height:100%; border-radius:20px; background:var(--green); }
+
+.badge {
+  display:inline-block; padding:3px 9px; border-radius:20px;
+  font-size:.72rem; font-weight:800;
+}
+.badge-green  { background:var(--green-lt); color:var(--green); }
+.badge-yellow { background:var(--yel-lt); color:var(--yellow); }
+.badge-gray   { background:#f1f5f9; color:var(--muted); }
+
+/* ══ 學生詳細頁 ══ */
+.back-btn {
+  display:flex; align-items:center; gap:6px;
+  background:none; border:none; cursor:pointer;
+  font-size:.88rem; font-weight:800; color:var(--blue);
+  font-family:inherit; padding:0; margin-bottom:16px;
+}
+.back-btn:hover { text-decoration:underline; }
+
+.student-detail-header {
+  display:flex; align-items:center; gap:14px; margin-bottom:20px;
+}
+.student-avatar {
+  width:52px; height:52px; border-radius:50%;
+  background:var(--blue-lt); border:3px solid #bfdbfe;
+  display:flex; align-items:center; justify-content:center;
+  font-size:1.4rem; font-weight:900; color:var(--blue-dk);
+}
+.student-name-wrap .name { font-size:1.2rem; font-weight:900; }
+.student-name-wrap .sub  { font-size:.8rem; color:var(--muted); font-weight:600; }
+
+.char-status-grid {
+  display:grid; grid-template-columns:repeat(auto-fill,minmax(90px,1fr));
+  gap:10px;
+}
+.char-status-item {
+  border-radius:10px; padding:12px 8px;
+  display:flex; flex-direction:column; align-items:center; gap:6px;
+  border:2px solid transparent;
+}
+.char-status-item.mastered  { background:var(--green-lt); border-color:#86efac; }
+.char-status-item.practiced { background:var(--yel-lt);   border-color:#fde047; }
+.char-status-item.new       { background:#f8fafc; border-color:var(--border); }
+.char-glyph { font-size:2rem; font-family:'Noto Sans TC',serif; font-weight:900; line-height:1; }
+.char-lbl   { font-size:.68rem; font-weight:800; }
+.char-status-item.mastered  .char-lbl { color:var(--green); }
+.char-status-item.practiced .char-lbl { color:var(--yellow); }
+.char-status-item.new       .char-lbl { color:var(--muted); }
+
+/* 載入動畫 */
+.spinner {
+  width:28px; height:28px; border-radius:50%;
+  border:3px solid var(--border); border-top-color:var(--blue);
+  animation:spin .7s linear infinite; margin:0 auto;
+}
+@keyframes spin { to { transform:rotate(360deg); } }
+.loading-wrap { padding:40px; text-align:center; color:var(--muted); font-weight:700; }
+
+/* Toast */
+.toast {
+  position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(60px);
+  background:var(--text); color:white; border-radius:10px;
+  padding:11px 22px; font-size:.9rem; font-weight:700;
+  opacity:0; transition:all .3s ease; z-index:999; white-space:nowrap;
+}
+.toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<!-- ══ 登入畫面 ══ -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="login-logo-icon">🏫</div>
+      <div class="login-school">臺東縣太平國小</div>
+      <div class="login-title">教師管理後台</div>
+    </div>
+    <div class="login-field">
+      <label class="login-label">管理員密碼</label>
+      <input class="login-input" id="admin-pwd" type="password"
+        placeholder="請輸入密碼" onkeydown="if(event.key==='Enter')doAdminLogin()">
+    </div>
+    <button class="login-btn" onclick="doAdminLogin()">登　入</button>
+    <div class="login-error" id="login-error">密碼錯誤，請再試一次。</div>
+  </div>
+</div>
+
+<!-- ══ 後台主畫面 ══ -->
+<div id="admin-screen">
+
+  <!-- 頂部列 -->
+  <div class="admin-topbar">
+    <div class="topbar-brand">
+      <div class="topbar-brand-icon">🏫</div>
+      <div>
+        <div class="topbar-brand-name">太平國小 教師後台</div>
+        <div class="topbar-brand-sub">國字學習管理系統</div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <span style="font-size:.82rem;font-weight:700;color:var(--muted)" id="last-update"></span>
+      <button class="btn-logout" onclick="doLogout()">登出</button>
+    </div>
+  </div>
+
+  <div class="admin-main">
+
+    <!-- 分頁 -->
+    <div class="admin-tabs">
+      <button class="admin-tab active" id="tab-overview" onclick="switchTab('overview')">📊 班級總覽</button>
+      <button class="admin-tab" id="tab-lesson"   onclick="switchTab('lesson')">📝 設定生字</button>
+    </div>
+
+    <!-- 班級總覽 -->
+    <div id="panel-overview">
+      <div class="stats-row">
+        <div class="stat-card stat-blue">
+          <div class="stat-num" id="stat-total">—</div>
+          <div class="stat-lbl">學生總數</div>
+        </div>
+        <div class="stat-card stat-green">
+          <div class="stat-num" id="stat-active">—</div>
+          <div class="stat-lbl">今日活躍</div>
+        </div>
+        <div class="stat-card stat-yellow">
+          <div class="stat-num" id="stat-mastered">—</div>
+          <div class="stat-lbl">平均掌握字數</div>
+        </div>
+      </div>
+
+      <!-- 學生列表 -->
+      <div class="card">
+        <div class="card-title">👥 學生列表
+          <button onclick="loadStudents()" style="margin-left:auto;padding:5px 12px;border:1.5px solid var(--border);border-radius:7px;background:white;font-size:.8rem;font-weight:700;cursor:pointer;font-family:inherit">🔄 重新整理</button>
+        </div>
+        <div id="student-list-wrap">
+          <div class="loading-wrap"><div class="spinner"></div><br>載入中…</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 設定生字 -->
+    <div id="panel-lesson" style="display:none">
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-title">📋 目前的生字</div>
+        <div id="current-lesson-display">
+          <div class="loading-wrap"><div class="spinner"></div></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">✏️ 設定今日生字</div>
+        <div class="lesson-grid">
+          <div>
+            <label style="font-size:.8rem;font-weight:800;color:var(--muted);display:block;margin-bottom:8px">輸入漢字（最多 20 個）</label>
+            <input class="lesson-input-area" id="lesson-input"
+              type="text" maxlength="20"
+              placeholder="例如：山水火土木"
+              oninput="updateLessonPreview()">
+          </div>
+          <div>
+            <label style="font-size:.8rem;font-weight:800;color:var(--muted);display:block;margin-bottom:8px">預覽</label>
+            <div class="lesson-preview" id="lesson-preview">
+              <span class="lesson-empty">輸入文字後這裡會顯示預覽</span>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:16px;display:flex;gap:10px;align-items:center">
+          <button class="btn-save-lesson" onclick="saveLesson()">
+            <span>💾</span><span>儲存並套用</span>
+          </button>
+          <span style="font-size:.8rem;color:var(--muted);font-weight:600">儲存後所有學生下次登入會自動載入這組生字</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 學生詳細頁 -->
+    <div id="panel-student" style="display:none">
+      <button class="back-btn" onclick="backToOverview()">← 返回班級總覽</button>
+      <div class="student-detail-header">
+        <div class="student-avatar" id="detail-avatar"></div>
+        <div class="student-name-wrap">
+          <div class="name" id="detail-name"></div>
+          <div class="sub" id="detail-sub"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">📚 學習狀態</div>
+        <div style="display:flex;gap:12px;margin-bottom:14px;flex-wrap:wrap">
+          <span class="badge badge-green">✓ 已掌握</span>
+          <span class="badge badge-yellow">◎ 練習中</span>
+          <span class="badge badge-gray">○ 未學習</span>
+        </div>
+        <div class="char-status-grid" id="detail-chars"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+
+// ══ Firebase 設定 ══
+var firebaseConfig = {
+  apiKey: "AIzaSyBLhonzZkR1ORDPKgxmaVLFUwvPiEMpdj0",
+  authDomain: "tainping-hanzi-app.firebaseapp.com",
+  projectId: "tainping-hanzi-app",
+  storageBucket: "tainping-hanzi-app.firebasestorage.app",
+  messagingSenderId: "158917910126",
+  appId: "1:158917910126:web:e52a1d0456d1fd4fe6907f"
+};
+
+var db = null;
+
+// ══ 固定管理員密碼（可自行修改） ══
+var ADMIN_PASSWORD = 'taiping2024';
+
+function initFirebase() {
+  if (typeof firebase === 'undefined' || typeof firebase.firestore === 'undefined') {
+    setTimeout(initFirebase, 150); return;
+  }
+  try {
+    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+    db = firebase.firestore();
+  } catch(e) { setTimeout(initFirebase, 300); }
+}
+document.addEventListener('DOMContentLoaded', initFirebase);
+window.addEventListener('load', initFirebase);
+
+// ══ 登入 ══
+function doAdminLogin() {
+  var pwd = document.getElementById('admin-pwd').value;
+  var err = document.getElementById('login-error');
+  if (pwd === ADMIN_PASSWORD) {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('admin-screen').style.display = '';
+    loadStudents();
+    loadCurrentLesson();
+  } else {
+    err.classList.add('show');
+    document.getElementById('admin-pwd').value = '';
+  }
+}
+
+function doLogout() {
+  document.getElementById('admin-screen').style.display = 'none';
+  document.getElementById('login-screen').style.display = '';
+  document.getElementById('admin-pwd').value = '';
+}
+
+// ══ 分頁切換 ══
+function switchTab(tab) {
+  ['overview','lesson'].forEach(function(t) {
+    document.getElementById('panel-'+t).style.display = t===tab ? '' : 'none';
+    document.getElementById('tab-'+t).classList.toggle('active', t===tab);
+  });
+  document.getElementById('panel-student').style.display = 'none';
+  if (tab === 'overview') loadStudents();
+  if (tab === 'lesson')   loadCurrentLesson();
+}
+
+// ══ 載入學生列表 ══
+function loadStudents() {
+  if (!db) { setTimeout(loadStudents, 500); return; }
+  var wrap = document.getElementById('student-list-wrap');
+  wrap.innerHTML = '<div class="loading-wrap"><div class="spinner"></div><br>載入中…</div>';
+
+  db.collection('students').get().then(function(snap) {
+    var students = [];
+    var promises = [];
+
+    snap.forEach(function(doc) {
+      var data = doc.data();
+      var p = db.collection('students').doc(doc.id)
+        .collection('progress').doc('hanzi').get()
+        .then(function(pd) {
+          students.push({
+            id:        doc.id,
+            name:      data.name || doc.id,
+            createdAt: data.createdAt,
+            lastSeen:  pd.exists ? pd.data().lastSeen : null,
+            charStatus:pd.exists ? (pd.data().charStatus||{}) : {}
+          });
+        });
+      promises.push(p);
+    });
+
+    return Promise.all(promises).then(function() {
+      // 依最後登入時間排序
+      students.sort(function(a,b){
+        var at = a.lastSeen ? a.lastSeen.seconds : 0;
+        var bt = b.lastSeen ? b.lastSeen.seconds : 0;
+        return bt - at;
+      });
+      renderStudentList(students);
+    });
+  }).catch(function(e) {
+    wrap.innerHTML = '<div class="loading-wrap" style="color:var(--red)">載入失敗，請重新整理。</div>';
+  });
+}
+
+function renderStudentList(students) {
+  var wrap = document.getElementById('student-list-wrap');
+
+  // 統計
+  var total    = students.length;
+  var today    = new Date(); today.setHours(0,0,0,0);
+  var active   = students.filter(function(s){
+    return s.lastSeen && s.lastSeen.seconds * 1000 > today.getTime();
+  }).length;
+  var totalMastered = students.reduce(function(acc,s){
+    return acc + Object.values(s.charStatus).filter(function(v){ return v==='mastered'; }).length;
+  }, 0);
+  var avgMastered = total ? Math.round(totalMastered/total) : 0;
+
+  document.getElementById('stat-total').textContent    = total;
+  document.getElementById('stat-active').textContent   = active;
+  document.getElementById('stat-mastered').textContent = avgMastered;
+
+  if (!total) {
+    wrap.innerHTML = '<div class="loading-wrap">還沒有學生資料。</div>';
+    return;
+  }
+
+  var rows = students.map(function(s) {
+    var cs      = s.charStatus;
+    var keys    = Object.keys(cs);
+    var mastered = keys.filter(function(k){ return cs[k]==='mastered'; }).length;
+    var total_c  = keys.length || 1;
+    var pct      = Math.round(mastered/total_c*100);
+    var lastStr  = s.lastSeen
+      ? new Date(s.lastSeen.seconds*1000).toLocaleString('zh-TW',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})
+      : '—';
+    var badge = mastered===total_c && total_c>0
+      ? '<span class="badge badge-green">全部掌握</span>'
+      : mastered>0
+        ? '<span class="badge badge-yellow">學習中</span>'
+        : '<span class="badge badge-gray">未開始</span>';
+
+    return '<tr onclick="showStudentDetail(\''+s.id+'\')">'
+      +'<td><strong>'+s.name+'</strong></td>'
+      +'<td>'+badge+'</td>'
+      +'<td>'
+      +'  <div style="display:flex;align-items:center;gap:8px">'
+      +'    <div class="progress-mini"><div class="progress-mini-fill" style="width:'+pct+'%"></div></div>'
+      +'    <span style="font-size:.8rem;color:var(--muted)">'+mastered+'/'+keys.length+' 字</span>'
+      +'  </div>'
+      +'</td>'
+      +'<td style="color:var(--muted);font-size:.82rem">'+lastStr+'</td>'
+      +'<td style="color:var(--blue);font-size:.82rem;font-weight:700">查看詳細 →</td>'
+      +'</tr>';
+  }).join('');
+
+  wrap.innerHTML = '<table class="student-table">'
+    +'<thead><tr><th>姓名</th><th>狀態</th><th>掌握進度</th><th>最後登入</th><th></th></tr></thead>'
+    +'<tbody>'+rows+'</tbody></table>';
+
+  var now = new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
+  document.getElementById('last-update').textContent = '更新於 '+now;
+}
+
+// ══ 學生詳細頁 ══
+var allStudentsCache = [];
+
+function showStudentDetail(studentId) {
+  if (!db) return;
+  document.getElementById('panel-overview').style.display = 'none';
+  document.getElementById('panel-student').style.display  = '';
+
+  db.collection('students').doc(studentId).get().then(function(doc) {
+    var data = doc.data();
+    var name = data.name || studentId;
+    var initial = name.charAt(0);
+
+    document.getElementById('detail-avatar').textContent = initial;
+    document.getElementById('detail-name').textContent   = name;
+
+    return db.collection('students').doc(studentId)
+      .collection('progress').doc('hanzi').get();
+  }).then(function(pd) {
+    var cs       = pd.exists ? (pd.data().charStatus||{}) : {};
+    var lastSeen = pd.exists && pd.data().lastSeen
+      ? new Date(pd.data().lastSeen.seconds*1000).toLocaleString('zh-TW')
+      : '尚未使用';
+
+    document.getElementById('detail-sub').textContent = '最後登入：'+lastSeen;
+
+    var chars    = Object.keys(cs);
+    var mastered = chars.filter(function(c){ return cs[c]==='mastered'; }).length;
+    document.getElementById('detail-sub').textContent =
+      '最後登入：'+lastSeen+'　｜　已掌握 '+mastered+' / '+chars.length+' 個字';
+
+    if (!chars.length) {
+      document.getElementById('detail-chars').innerHTML =
+        '<div style="color:var(--muted);font-size:.88rem;font-weight:600;padding:12px 0">這位學生還沒有學習紀錄。</div>';
+      return;
+    }
+
+    document.getElementById('detail-chars').innerHTML = chars.map(function(c) {
+      var st  = cs[c] || 'new';
+      var lbl = {mastered:'已掌握', practiced:'練習中', new:'未學習'}[st] || st;
+      return '<div class="char-status-item '+st+'">'
+        +'<div class="char-glyph">'+c+'</div>'
+        +'<div class="char-lbl">'+lbl+'</div></div>';
+    }).join('');
+  });
+}
+
+function backToOverview() {
+  document.getElementById('panel-student').style.display  = 'none';
+  document.getElementById('panel-overview').style.display = '';
+}
+
+// ══ 生字設定 ══
+function loadCurrentLesson() {
+  if (!db) { setTimeout(loadCurrentLesson, 500); return; }
+  db.collection('settings').doc('lesson').get().then(function(doc) {
+    var el = document.getElementById('current-lesson-display');
+    if (doc.exists && doc.data().chars && doc.data().chars.length) {
+      var chars   = doc.data().chars;
+      var updated = doc.data().updatedAt
+        ? new Date(doc.data().updatedAt.seconds*1000).toLocaleString('zh-TW')
+        : '';
+      el.innerHTML = '<div class="current-lesson-banner">'
+        +'<span style="font-size:1.1rem">📋</span>'
+        +'<div>'
+        +'<div style="font-size:.82rem;font-weight:700">目前生字（'+updated+' 設定）</div>'
+        +'<div style="font-size:1.2rem;letter-spacing:4px;margin-top:4px">'+chars.join('')+'</div>'
+        +'</div></div>';
+    } else {
+      el.innerHTML = '<div style="color:var(--muted);font-size:.88rem;font-weight:600">尚未設定生字。</div>';
+    }
+  });
+}
+
+function updateLessonPreview() {
+  var raw    = document.getElementById('lesson-input').value;
+  var chars  = Array.from(new Set(raw.replace(/\s/g,'').split('').filter(Boolean)));
+  var prev   = document.getElementById('lesson-preview');
+  if (!chars.length) {
+    prev.innerHTML = '<span class="lesson-empty">輸入文字後這裡會顯示預覽</span>';
+    return;
+  }
+  prev.innerHTML = chars.map(function(c){
+    return '<div class="lesson-char-chip">'+c+'</div>';
+  }).join('');
+}
+
+function saveLesson() {
+  if (!db) { showToast('系統連線中，請稍候…'); return; }
+  var raw   = document.getElementById('lesson-input').value;
+  var chars = Array.from(new Set(raw.replace(/\s/g,'').split('').filter(Boolean)));
+  if (!chars.length) { showToast('請先輸入生字！'); return; }
+
+  db.collection('settings').doc('lesson').set({
+    chars:     chars,
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  }).then(function() {
+    showToast('✅ 生字已儲存！學生下次登入將自動載入。');
+    loadCurrentLesson();
+    document.getElementById('lesson-input').value = '';
+    document.getElementById('lesson-preview').innerHTML =
+      '<span class="lesson-empty">輸入文字後這裡會顯示預覽</span>';
+  }).catch(function(e) {
+    showToast('❌ 儲存失敗：'+e.message);
+  });
+}
+
+// ══ Toast ══
+function showToast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(function(){ t.classList.remove('show'); }, 2800);
+}
+</script>
+</body>
+</html>
