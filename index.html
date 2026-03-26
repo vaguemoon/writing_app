@@ -99,7 +99,7 @@ body {
   border-radius:var(--radius); padding:24px 20px; box-shadow:var(--shadow-lg);
 }
 .home-card-label { font-size:.82rem; font-weight:800; color:var(--muted); letter-spacing:1px; margin-bottom:12px; }
-.char-input-row { display:flex; gap:8px; }
+.char-input-row { display:flex; flex-direction:column; gap:10px; }
 .char-input {
   flex:1; border:2.5px solid #d4e8f8; border-radius:12px;
   padding:12px 16px; font-size:1.2rem;
@@ -110,8 +110,8 @@ body {
 .btn-start {
   background:linear-gradient(135deg,var(--blue),var(--blue-dk));
   color:white; border:none; border-radius:12px;
-  padding:12px 20px; font-size:1rem; font-weight:900;
-  cursor:pointer; transition:all .15s; white-space:nowrap;
+  padding:14px; font-size:1.05rem; font-weight:900;
+  cursor:pointer; transition:all .15s; width:100%;
   font-family:'Nunito',sans-serif; box-shadow:0 4px 14px rgba(45,111,168,.35);
 }
 .btn-start:active { transform:scale(.96); }
@@ -211,20 +211,59 @@ body {
 }
 
 /* ══ 練習模式 ══ */
+/* ══ 練習面板：單格 + Tab 切換（手機友善） ══ */
 .practice-wrap {
-  display:flex; align-items:flex-start; justify-content:center;
-  gap:20px; flex-wrap:wrap; width:100%;
+  display:flex; flex-direction:column; align-items:center;
+  gap:10px; width:100%;
 }
 .practice-col { display:flex; flex-direction:column; align-items:center; gap:8px; }
 .grid-label   { font-size:.82rem; font-weight:800; color:var(--muted); }
 
-/* 範例格：overflow visible 讓 HanziWriter SVG 正常 */
+/* Tab 列 */
+.practice-tab-bar {
+  display:flex; width:var(--grid); border-radius:14px; overflow:hidden;
+  border:2.5px solid #c8d8ec; background:#f5f9fd; flex-shrink:0;
+}
+.practice-tab {
+  flex:1; padding:12px 8px; border:none; background:transparent;
+  font-family:'Nunito','Noto Sans TC',sans-serif;
+  font-size:.92rem; font-weight:800; color:var(--muted);
+  cursor:pointer; transition:all .2s; border-radius:11px;
+  display:flex; align-items:center; justify-content:center; gap:5px;
+}
+.practice-tab.active {
+  background:var(--blue); color:white;
+  box-shadow:0 2px 8px rgba(74,144,217,.35);
+}
+
+/* 單格容器：ref 和 quiz 疊放在同一位置 */
+.practice-grid-wrap {
+  position:relative; width:var(--grid); height:var(--grid); flex-shrink:0;
+}
+.practice-grid-wrap > * {
+  position:absolute; top:0; left:0;
+  width:var(--grid); height:var(--grid);
+  transition:opacity .25s ease;
+}
+.practice-grid-wrap > .hidden-panel { opacity:0; pointer-events:none; }
+
+/* 範例格 */
 #ref-target {
-  position:relative;
+  border:3px solid #c8d8ec; border-radius:18px;
+  background-color:white; overflow:visible;
+  background-image:
+    linear-gradient(to right,  rgba(200,216,236,.45) 1px,transparent 1px),
+    linear-gradient(to bottom, rgba(200,216,236,.45) 1px,transparent 1px),
+    linear-gradient(to right,  #c8d8ec 1px,transparent 1px),
+    linear-gradient(to bottom, #c8d8ec 1px,transparent 1px);
+  background-size:
+    calc(var(--grid)/9) calc(var(--grid)/9),
+    calc(var(--grid)/9) calc(var(--grid)/9),
+    33.333% 33.333%, 33.333% 33.333%;
 }
 #ref-target > * { position:relative; z-index:1; }
 
-/* Quiz 格：不設 overflow:hidden，確保觸控事件能正常觸達 SVG */
+/* Quiz 格 */
 .quiz-box {
   width:var(--grid); height:var(--grid);
   border:3px solid #c8d8ec; border-radius:18px;
@@ -238,8 +277,7 @@ body {
   background-size:
     calc(var(--grid)/9) calc(var(--grid)/9),
     calc(var(--grid)/9) calc(var(--grid)/9),
-    33.333% 33.333%,
-    33.333% 33.333%;
+    33.333% 33.333%, 33.333% 33.333%;
 }
 .quiz-box svg { border-radius:15px; }
 
@@ -343,21 +381,22 @@ body {
 .result-panel.show { display:flex; animation:popIn .4s cubic-bezier(.34,1.56,.64,1); }
 
 /* 默寫對照：左右並排 */
+/* 對照格：固定 140px，左右排列不換行 */
 .compare-wrap {
-  display:flex; gap:16px; align-items:flex-start;
-  justify-content:center; flex-wrap:wrap; width:100%;
+  display:flex; gap:12px; align-items:flex-start;
+  justify-content:center; flex-wrap:nowrap; width:100%;
 }
 .compare-col {
-  display:flex; flex-direction:column; align-items:center; gap:6px;
+  display:flex; flex-direction:column; align-items:center; gap:5px;
+  flex-shrink:0;
 }
 .compare-lbl {
-  font-size:.82rem; font-weight:800; color:var(--muted);
+  font-size:.78rem; font-weight:800; color:var(--muted);
 }
-/* 學生筆跡格 */
 .compare-student-wrap {
-  border:3px solid #c8d8ec; border-radius:16px; overflow:hidden;
-  flex-shrink:0;
-  background-color:white;
+  width:140px; height:140px;
+  border:3px solid #c8d8ec; border-radius:14px; overflow:hidden;
+  flex-shrink:0; background-color:white;
   background-image:
     linear-gradient(to right, rgba(200,216,236,.45) 1px,transparent 1px),
     linear-gradient(to bottom,rgba(200,216,236,.45) 1px,transparent 1px),
@@ -366,10 +405,10 @@ body {
   background-size:33.333% 33.333%, 33.333% 33.333%,
                   33.333% 33.333%, 33.333% 33.333%;
 }
-#compare-student { display:block; }
-/* 正確字形格 */
+#compare-student { display:block; width:140px; height:140px; }
 .compare-ref-wrap {
-  border:3px solid #c8d8ec; border-radius:16px;
+  width:140px; height:140px;
+  border:3px solid #c8d8ec; border-radius:14px;
   background-color:white; flex-shrink:0;
   display:flex; align-items:center; justify-content:center;
   background-image:
@@ -380,9 +419,11 @@ body {
 #compare-ref {
   font-family:'Noto Serif TC',serif; font-weight:900;
   color:var(--text); line-height:1;
+  font-size:90px;
 }
 .compare-arrow {
-  font-size:1.6rem; color:var(--muted); align-self:center; margin-top:20px;
+  font-size:1.4rem; color:var(--muted);
+  align-self:center; flex-shrink:0;
 }
 
 /* 自評按鈕 */
@@ -556,22 +597,22 @@ body {
 
 .exam-score-grid {
   display:grid;
-  grid-template-columns:repeat(auto-fill,minmax(130px,1fr));
-  gap:12px; width:100%; margin-bottom:8px;
+  grid-template-columns:repeat(auto-fill,minmax(80px,1fr));
+  gap:8px; width:100%; margin-bottom:8px;
 }
 .exam-score-item {
-  background:white; border-radius:16px;
-  padding:16px 10px 12px;
-  display:flex; flex-direction:column; align-items:center; gap:8px;
-  box-shadow:var(--shadow); border:3px solid transparent;
+  background:white; border-radius:12px;
+  padding:10px 6px 8px;
+  display:flex; flex-direction:column; align-items:center; gap:5px;
+  box-shadow:0 2px 10px rgba(44,100,160,.1); border:2.5px solid transparent;
 }
 .exam-score-item.pass   { border-color:var(--green); }
 .exam-score-item.ok     { border-color:var(--yellow); }
 .exam-score-item.fail   { border-color:#ffb3b3; }
 .exam-score-item.skip   { border-color:#c8d8ec; opacity:.7; }
-.exam-score-glyph { font-size:2.8rem; font-family:'Noto Serif TC',serif; font-weight:900; line-height:1; }
+.exam-score-glyph { font-size:2rem; font-family:'Noto Serif TC',serif; font-weight:900; line-height:1; }
 .exam-score-stars { font-size:1rem; letter-spacing:2px; }
-.exam-score-label { font-size:.72rem; font-weight:800; padding:3px 10px; border-radius:20px; }
+.exam-score-label { font-size:.65rem; font-weight:800; padding:2px 7px; border-radius:20px; }
 .label-pass   { background:#e8f8ee; color:var(--green-dk); }
 .label-ok     { background:#fff8e1; color:#b07800; }
 .label-fail   { background:#fff0f0; color:var(--red); }
@@ -788,6 +829,8 @@ body {
     </div>
 
   </div>
+
+
 </div>
 
 <!-- ══ 畫面二點五：模式選擇 ══ -->
@@ -839,17 +882,29 @@ body {
     <div id="panel-practice">
       <div class="practice-wrap">
 
-        <!-- 範例筆順格 -->
-        <div class="practice-col">
-          <div class="grid-label">👁 範例筆順</div>
-          <div class="nine-grid" id="ref-target"></div>
+        <!-- Tab 切換列 -->
+        <div class="practice-tab-bar">
+          <button class="practice-tab active" id="tab-ref" onclick="switchPracticeTab('ref')">
+            👁 範例筆順
+          </button>
+          <button class="practice-tab" id="tab-quiz" onclick="switchPracticeTab('quiz')">
+            ✍️ 練習格
+          </button>
+        </div>
+
+        <!-- 單格容器：兩個格子疊放 -->
+        <div class="practice-grid-wrap">
+          <div id="ref-target"></div>
+          <div class="quiz-box hidden-panel" id="quiz-target"></div>
+        </div>
+
+        <!-- 範例控制（ref tab 時顯示） -->
+        <div id="ref-controls">
           <button class="btn-replay" onclick="playRef()">▶ 再播一次</button>
         </div>
 
-        <!-- 互動練習格 -->
-        <div class="practice-col">
-          <div class="grid-label">✍️ 練習格</div>
-          <div class="quiz-box" id="quiz-target"></div>
+        <!-- 練習控制（quiz tab 時顯示） -->
+        <div id="quiz-controls" style="display:none;flex-direction:column;align-items:center;gap:8px;width:100%">
           <div class="feedback-box fb-idle" id="feedback-box">照著左邊的筆順<br>在右邊一筆一筆寫！</div>
           <div class="practice-ctrl">
             <button class="btn-ctrl btn-clear" onclick="restartQuiz()">🔄 重新練習</button>
@@ -1227,6 +1282,33 @@ function openChar(idx) {
 // ═══════════════════════════════════════
 //  練習模式
 // ═══════════════════════════════════════
+// 切換練習頁的 tab（範例 / 練習格）
+function switchPracticeTab(tab) {
+  var refTarget  = document.getElementById('ref-target');
+  var quizTarget = document.getElementById('quiz-target');
+  var refCtrl    = document.getElementById('ref-controls');
+  var quizCtrl   = document.getElementById('quiz-controls');
+  var tabRef     = document.getElementById('tab-ref');
+  var tabQuiz    = document.getElementById('tab-quiz');
+  if (!refTarget) return;
+
+  if (tab === 'ref') {
+    refTarget.classList.remove('hidden-panel');
+    quizTarget.classList.add('hidden-panel');
+    refCtrl.style.display  = '';
+    quizCtrl.style.display = 'none';
+    tabRef.classList.add('active');
+    tabQuiz.classList.remove('active');
+  } else {
+    refTarget.classList.add('hidden-panel');
+    quizTarget.classList.remove('hidden-panel');
+    refCtrl.style.display  = 'none';
+    quizCtrl.style.display = 'flex';
+    tabRef.classList.remove('active');
+    tabQuiz.classList.add('active');
+  }
+}
+
 function switchToPractice() {
   currentMode = 'practice';
   document.getElementById('panel-practice').style.display = '';
@@ -1245,6 +1327,8 @@ function switchToPractice() {
     +'<span class="btn-big-icon">📝</span><span>完成練習後開始默寫</span></button>';
 
   setFeedback('fb-idle','照著左邊的筆順<br>在右邊一筆一筆寫！');
+  // 重置 tab 到「範例筆順」
+  setTimeout(function(){ switchPracticeTab('ref'); }, 10);
   initPractice(chars[currentIdx]);
 }
 
@@ -1618,25 +1702,16 @@ function submitDictation() {
   for (var i=3;i<px.length;i+=4){ if(px[i]>20){hasInk=true;break;} }
   if (!hasInk) { showToast('📝 還沒寫喔！請先在格子裡寫字！'); return; }
 
-  // 左側：學生筆跡縮圖
-  var sz   = Math.min(dCanvas.width, 200); // 對照格固定 200px
-  var wrap = document.getElementById('compare-student-wrap');
-  wrap.style.width  = sz+'px';
-  wrap.style.height = sz+'px';
+  // 左側：學生筆跡縮圖（固定 140px）
+  var sz = 140;
   var oc = document.getElementById('compare-student');
   oc.width  = sz;
   oc.height = sz;
-  oc.style.width  = sz+'px';
-  oc.style.height = sz+'px';
   oc.getContext('2d').drawImage(dCanvas, 0, 0, sz, sz);
 
-  // 右側：正確字形
-  var rw = document.getElementById('compare-ref-wrap');
-  rw.style.width  = sz+'px';
-  rw.style.height = sz+'px';
+  // 右側：正確字形（CSS 已設定固定尺寸）
   var rf = document.getElementById('compare-ref');
   rf.textContent = char;
-  rf.style.fontSize = Math.round(sz*0.7)+'px';
 
   // 重置自評區
   document.getElementById('after-eval').style.display = 'none';
@@ -1830,9 +1905,6 @@ function startExamQQuiz(char) {
     },
     onComplete:function(summary){
       examQMistakes = summary.totalMistakes;
-      // 短暫停頓讓學生看到完成，再自動進下一題
-      var passed = examQMistakes <= 2;
-      if (passed) { sfxCorrect(); } else { sfxWrong(); }
       recordAndNext(char, examQMistakes, false);
     }
   });
@@ -1846,6 +1918,7 @@ function skipExamChar() {
   }
   recordAndNext(char, 99, true); // 99 = 跳過
 }
+
 
 function recordAndNext(char, mistakes, skipped) {
   var passed = !skipped && mistakes <= 2;
