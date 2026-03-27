@@ -2548,8 +2548,14 @@ function clearDictCanvas() {
   if (dictCtrl) dictCtrl.style.display = '';
   var dictInfo = document.querySelector('#panel-dict .dict-info');
   if (dictInfo) dictInfo.style.display = '';
-  var fbar = document.getElementById('dict-float-bar');
-  if (fbar) fbar.style.display = '';
+  // 重建交卷按鈕
+  var oldFbar = document.getElementById('dict-float-bar');
+  if (oldFbar) oldFbar.remove();
+  var newFbar = document.createElement('div');
+  newFbar.className = 'dict-float-bar';
+  newFbar.id = 'dict-float-bar';
+  newFbar.innerHTML = '<button class="btn-float btn-float-submit" onclick="submitDictation()"><span>✓</span><span>交　卷</span></button>';
+  document.body.appendChild(newFbar);
 }
 
 function retryDict() {
@@ -2597,9 +2603,9 @@ function submitDictation() {
   var dictInfo = document.querySelector('#panel-dict .dict-info');
   if (dictInfo) dictInfo.style.display = 'none';
 
-  // 隱藏交卷浮動按鈕
+  // 移除交卷浮動按鈕（避免與結果面板衝突）
   var fbar = document.getElementById('dict-float-bar');
-  if (fbar) fbar.style.display = 'none';
+  if (fbar) fbar.remove();
 
   document.getElementById('result-panel').classList.add('show');
   sfxSwipe();
