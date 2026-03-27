@@ -2434,6 +2434,13 @@ function switchToDict() {
   document.getElementById('panel-practice').style.display = 'none';
   document.getElementById('panel-dict').style.display     = '';
   document.getElementById('result-panel').classList.remove('show');
+  // 確保書寫區顯示
+  var dictCanvas = document.getElementById('dict-canvas-wrap');
+  if (dictCanvas) dictCanvas.style.display = '';
+  var dictCtrl = document.querySelector('.dict-ctrl');
+  if (dictCtrl) dictCtrl.style.display = '';
+  var dictInfoEl = document.querySelector('#panel-dict .dict-info');
+  if (dictInfoEl) dictInfoEl.style.display = '';
   document.getElementById('mode-icon').textContent  = '📝';
   document.getElementById('mode-title').textContent = '默寫測驗';
   document.getElementById('mode-sub').textContent   = '靠自己的記憶把字寫出來';
@@ -2534,13 +2541,23 @@ function clearDictCanvas() {
   dDrawing = false; dictScore = -1;
   dAllStrokes = []; dCurrentStroke = [];
   document.getElementById('result-panel').classList.remove('show');
+  // 恢復書寫區
+  var dictCanvas = document.getElementById('dict-canvas-wrap');
+  if (dictCanvas) dictCanvas.style.display = '';
+  var dictCtrl = document.querySelector('.dict-ctrl');
+  if (dictCtrl) dictCtrl.style.display = '';
+  var dictInfo = document.querySelector('#panel-dict .dict-info');
+  if (dictInfo) dictInfo.style.display = '';
+  var fbar = document.getElementById('dict-float-bar');
+  if (fbar) fbar.style.display = '';
 }
 
 function retryDict() {
   sfxTap();
   clearDictCanvas();
-  // 滾回頂部
-  document.getElementById('learn-body').scrollTo({top:0,behavior:'smooth'});
+  document.getElementById('retry-only-btn').style.display = 'none';
+  var screen = document.getElementById('screen-learn');
+  if (screen) screen.scrollTo({top:0, behavior:'smooth'});
 }
 
 // ── 交卷：像素相似度計算 ──
@@ -2562,22 +2579,34 @@ function submitDictation() {
   oc.height = sz;
   oc.getContext('2d').drawImage(dCanvas, 0, 0, sz, sz);
 
-  // 右側：正確字形（CSS 已設定固定尺寸）
+  // 右側：正確字形
   var rf = document.getElementById('compare-ref');
   rf.textContent = char;
 
   // 重置自評區
   document.getElementById('after-eval').style.display = 'none';
+  document.getElementById('retry-only-btn').style.display = 'none';
   var btns = document.querySelectorAll('.btn-eval');
   btns.forEach(function(b){ b.style.opacity='1'; b.disabled=false; });
+
+  // 隱藏書寫區，只顯示結果面板
+  var dictCanvas = document.getElementById('dict-canvas-wrap');
+  if (dictCanvas) dictCanvas.style.display = 'none';
+  var dictCtrl = document.querySelector('.dict-ctrl');
+  if (dictCtrl) dictCtrl.style.display = 'none';
+  var dictInfo = document.querySelector('#panel-dict .dict-info');
+  if (dictInfo) dictInfo.style.display = 'none';
+
+  // 隱藏交卷浮動按鈕
+  var fbar = document.getElementById('dict-float-bar');
+  if (fbar) fbar.style.display = 'none';
 
   document.getElementById('result-panel').classList.add('show');
   sfxSwipe();
 
-  setTimeout(function(){
-    var rp = document.getElementById('result-panel');
-    if (rp) rp.scrollIntoView({behavior:'smooth', block:'center'});
-  }, 200);
+  // scroll 到頂部
+  var screen = document.getElementById('screen-learn');
+  if (screen) screen.scrollTo({top:0, behavior:'smooth'});
 }
 
 // 學生自評（只有兩個選項）
