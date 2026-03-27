@@ -277,6 +277,17 @@ body {
 }
 .btn-tiny:hover { border-color:var(--red); color:var(--red); }
 
+/* 課程概況表格 */
+.course-item {
+  display:flex; align-items:center; gap:12px; padding:11px 12px;
+  border-radius:10px; border:1.5px solid var(--border);
+  margin-bottom:8px; cursor:pointer; transition:all .15s;
+  background:white;
+}
+.course-item:hover { border-color:var(--blue); background:var(--blue-lt); }
+.course-chars { font-size:1.1rem; font-family:'Noto Sans TC',serif; font-weight:900; letter-spacing:3px; flex:1; }
+.course-meta  { font-size:.78rem; font-weight:700; color:var(--muted); text-align:right; }
+
 /* 字跡 Modal */
 .stroke-modal-overlay {
   position:fixed; inset:0; background:rgba(0,0,0,.5);
@@ -373,13 +384,24 @@ body {
         </div>
       </div>
 
-      <!-- 學生列表 -->
-      <div class="card">
-        <div class="card-title">👥 學生列表
-          <button onclick="loadStudents()" style="margin-left:auto;padding:5px 12px;border:1.5px solid var(--border);border-radius:7px;background:white;font-size:.8rem;font-weight:700;cursor:pointer;font-family:inherit">🔄 重新整理</button>
+      <!-- 課程列表（有學習資料的課程） -->
+      <div class="card" id="course-overview-card">
+        <div class="card-title">📚 課程學習狀況
+          <button onclick="loadCourseOverview()" style="margin-left:auto;padding:5px 12px;border:1.5px solid var(--border);border-radius:7px;background:white;font-size:.8rem;font-weight:700;cursor:pointer;font-family:inherit">🔄 重新整理</button>
         </div>
-        <div id="student-list-wrap">
+        <div id="course-overview-wrap">
           <div class="loading-wrap"><div class="spinner"></div><br>載入中…</div>
+        </div>
+      </div>
+
+      <!-- 課程內的學生列表（點課程後顯示） -->
+      <div class="card" id="course-student-card" style="display:none">
+        <div class="card-title">
+          <button class="back-btn" style="margin:0" onclick="backToCourseOverview()">← 返回課程列表</button>
+          <span id="course-student-title" style="margin-left:10px"></span>
+        </div>
+        <div id="course-student-wrap">
+          <div class="loading-wrap"><div class="spinner"></div></div>
         </div>
       </div>
     </div>
@@ -605,7 +627,7 @@ function initFirebase() {
 
 function onFirebaseReady() {
   console.log('Firebase ready, loading data...');
-  loadStudents();
+  loadCourseOverview();
   loadCurrentLesson();
 }
 
@@ -636,12 +658,199 @@ function switchTab(tab) {
     document.getElementById('tab-'+t).classList.toggle('active', t===tab);
   });
   document.getElementById('panel-student').style.display = 'none';
-  if (tab === 'overview')   loadStudents();
+  if (tab === 'overview')   loadCourseOverview();
   if (tab === 'lesson')     loadCurrentLesson();
   if (tab === 'curriculum') loadVersions();
 }
 
-// ══ 載入學生列表 ══
+// ══ 課程學習狀況總覽 ══
+function loadCourseOverview() {
+  if (!db) { setTimeout(loadCourseOverview, 500); return; }
+  var wrap = document.getElementById('course-overview-wrap');
+  if (!wrap) return;
+  wrap.innerHTML = '<div class="loading-wrap"><div class="spinner"></div><br>載入中…</div>';
+
+  // 讀取所有學生的 charStatus
+  db.collection('students').get().then(function(snap) {
+    var studentDocs = [];
+    snap.forEach(function(doc){ studentDocs.push({ id:doc.id, data:doc.data() }); });
+
+    // 更新統計
+    document.getElementById('stat-total').textContent = studentDocs.length;
+    var today = new Date(); today.setHours(0,0,0,0);
+
+    // 讀取所有學生進度
+    var allProgress = [];
+    var done = 0;
+    if (!studentDocs.length) {
+      renderCourseOverview([], wrap);
+      return;
+    }
+
+    studentDocs.forEach(function(s) {
+      db.collection('students').doc(s.id)
+        .collection('progress').doc('hanzi').get()
+        .then(function(pd) {
+          allProgress.push({
+            studentId:   s.id,
+            studentName: s.data.name || s.id,
+            lastSeen:    pd.exists && pd.data().lastSeen ? pd.data().lastSeen : null,
+            charStatus:  pd.exists ? (pd.data().charStatus||{}) : {}
+          });
+        }).catch(function(){
+          allProgress.push({ studentId:s.id, studentName:s.data.name||s.id, lastSeen:null, charStatus:{} });
+        }).then(function(){
+          done++;
+          if (done === studentDocs.length) {
+            // 統計今日活躍
+            var active = allProgress.filter(function(p){
+              return p.lastSeen && p.lastSeen.seconds*1000 > today.getTime();
+            }).length;
+            document.getElementById('stat-active').textContent = active;
+
+            var totalMastered = allProgress.reduce(function(acc,p){
+              return acc + Object.values(p.charStatus).filter(function(v){ return v==='mastered'; }).length;
+            },0);
+            document.getElementById('stat-mastered').textContent =
+              studentDocs.length ? Math.round(totalMastered/studentDocs.length) : 0;
+
+            renderCourseOverview(allProgress, wrap);
+          }
+        });
+    });
+  }).catch(function(e){
+    if (wrap) wrap.innerHTML = '<div style="color:var(--red);font-size:.88rem">載入失敗：'+e.message+'</div>';
+  });
+}
+
+function renderCourseOverview(allProgress, wrap) {
+  if (!wrap) return;
+
+  // 收集所有出現過的字，依字分組
+  var charMap = {};  // { 字: { mastered:[], practiced:[], new:[] } }
+  allProgress.forEach(function(p) {
+    Object.keys(p.charStatus).forEach(function(c) {
+      if (!charMap[c]) charMap[c] = { mastered:[], practiced:[], notYet:[] };
+      var st = p.charStatus[c];
+      if (st === 'mastered')  charMap[c].mastered.push(p);
+      else if (st === 'practiced') charMap[c].practiced.push(p);
+      else charMap[c].notYet.push(p);
+    });
+  });
+
+  var chars = Object.keys(charMap);
+  if (!chars.length) {
+    wrap.innerHTML = '<div style="color:var(--muted);font-size:.88rem;font-weight:600;padding:8px 0">還沒有學習資料。</div>';
+    return;
+  }
+
+  // 依掌握率排序（掌握率低的排前面，提醒老師需要關注）
+  chars.sort(function(a,b){
+    var ra = charMap[a].mastered.length / (allProgress.length||1);
+    var rb = charMap[b].mastered.length / (allProgress.length||1);
+    return ra - rb;
+  });
+
+  wrap.innerHTML = '';
+  chars.forEach(function(c) {
+    var data      = charMap[c];
+    var total     = allProgress.length;
+    var mastered  = data.mastered.length;
+    var practiced = data.practiced.length;
+    var pct       = total ? Math.round(mastered/total*100) : 0;
+
+    var item = document.createElement('div');
+    item.className = 'course-item';
+    item.innerHTML =
+      '<div class="course-chars">'+c+'</div>'
+      +'<div>'
+      +'  <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">'
+      +'    <div style="height:8px;width:100px;background:#e2e8f0;border-radius:20px;overflow:hidden">'
+      +'      <div style="height:100%;width:'+pct+'%;background:var(--green);border-radius:20px"></div>'
+      +'    </div>'
+      +'    <span style="font-size:.75rem;font-weight:800;color:var(--green)">'+pct+'%</span>'
+      +'  </div>'
+      +'  <div class="course-meta">已掌握 '+mastered+' 人　練習中 '+practiced+' 人</div>'
+      +'</div>';
+    item.addEventListener('click', (function(ch){ return function(){ showCourseStudents(ch, charMap[ch], allProgress); }; })(c));
+    wrap.appendChild(item);
+  });
+}
+
+function showCourseStudents(char, data, allProgress) {
+  document.getElementById('course-overview-card').style.display  = 'none';
+  document.getElementById('course-student-card').style.display   = '';
+  document.getElementById('course-student-title').textContent    = '「'+char+'」學習狀況';
+
+  var wrap = document.getElementById('course-student-wrap');
+  // 合併所有學生，依狀態分組顯示
+  var groups = [
+    { label:'✅ 已掌握', students: data.mastered,  cls:'badge-green' },
+    { label:'🔄 練習中', students: data.practiced, cls:'badge-yellow' },
+  ];
+
+  wrap.innerHTML = '';
+  groups.forEach(function(g) {
+    if (!g.students.length) return;
+    var section = document.createElement('div');
+    section.style.marginBottom = '14px';
+    var label = document.createElement('div');
+    label.style.cssText = 'font-size:.82rem;font-weight:800;color:var(--muted);margin-bottom:8px';
+    label.textContent = g.label + '（' + g.students.length + ' 人）';
+    section.appendChild(label);
+    var row = document.createElement('div');
+    row.style.cssText = 'display:flex;flex-wrap:wrap;gap:8px';
+    g.students.forEach(function(p) {
+      var btn = document.createElement('div');
+      btn.style.cssText = 'display:flex;align-items:center;gap:7px;padding:8px 14px;border-radius:10px;border:1.5px solid var(--border);background:white;cursor:pointer;font-size:.88rem;font-weight:700;transition:all .15s';
+      btn.addEventListener('mouseover', function(){ this.style.borderColor='var(--blue)'; });
+      btn.addEventListener('mouseout',  function(){ this.style.borderColor='var(--border)'; });
+      btn.addEventListener('click', (function(id){ return function(){ showStudentDetail(id); }; })(p.studentId));
+      var avatar = document.createElement('div');
+      avatar.style.cssText = 'width:30px;height:30px;border-radius:50%;background:var(--blue-lt);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:.85rem;color:var(--blue-dk)';
+      avatar.textContent = p.studentName.charAt(0);
+      btn.appendChild(avatar);
+      btn.appendChild(document.createTextNode(p.studentName));
+      row.appendChild(btn);
+    });
+    section.appendChild(row);
+    wrap.appendChild(section);
+  });
+
+  // 尚未學習此字的學生
+  var learned = data.mastered.concat(data.practiced);
+  var learnedIds = learned.map(function(p){ return p.studentId; });
+  var notYet = allProgress.filter(function(p){ return learnedIds.indexOf(p.studentId) === -1; });
+  if (notYet.length) {
+    var nySection = document.createElement('div');
+    nySection.style.marginBottom = '14px';
+    var nyLabel = document.createElement('div');
+    nyLabel.style.cssText = 'font-size:.82rem;font-weight:800;color:var(--muted);margin-bottom:8px';
+    nyLabel.textContent = '⬜ 尚未學習（' + notYet.length + ' 人）';
+    nySection.appendChild(nyLabel);
+    var nyRow = document.createElement('div');
+    nyRow.style.cssText = 'display:flex;flex-wrap:wrap;gap:8px';
+    notYet.forEach(function(p) {
+      var tag = document.createElement('div');
+      tag.style.cssText = 'padding:8px 14px;border-radius:10px;border:1.5px solid var(--border);background:#f8fafc;font-size:.88rem;font-weight:700;color:var(--muted)';
+      tag.textContent = p.studentName;
+      nyRow.appendChild(tag);
+    });
+    nySection.appendChild(nyRow);
+    wrap.appendChild(nySection);
+  }
+
+  if (!wrap.children.length) {
+    wrap.innerHTML = '<div style="color:var(--muted);font-size:.88rem">沒有資料。</div>';
+  }
+}
+
+function backToCourseOverview() {
+  document.getElementById('course-student-card').style.display  = 'none';
+  document.getElementById('course-overview-card').style.display = '';
+}
+
+// ══ 載入學生列表（保留供學生詳細頁使用） ══
 function loadStudents() {
   var wrap = document.getElementById('student-list-wrap');
   if (!wrap) return;

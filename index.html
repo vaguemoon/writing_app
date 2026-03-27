@@ -2735,11 +2735,11 @@ function showExamQuestion() {
     width:sz, height:sz,
     padding:Math.round(sz*0.08),
     strokeColor:'#2d6fa8',
-    outlineColor:'rgba(0,0,0,0)',
+    outlineColor:'rgba(0,0,0,0)',      // 初始無輪廓
     drawingColor:'#2d6fa8',
     drawingWidth:Math.max(4,Math.round(sz*0.013)),
-    highlightColor:'rgba(0,0,0,0)',
-    showCharacter:false, showOutline:false, leniency:1.0,
+    highlightColor:'#ffd54f',          // 錯5次後的提示筆畫顏色
+    showCharacter:false, showOutline:false, leniency:1.1,
     onLoadCharDataSuccess:function(){
       setTimeout(function(){ playExamVoice(); }, 300);
       startExamQQuiz(char);
@@ -2760,15 +2760,28 @@ function playExamVoice() {
   }, 1200);
 }
 
+var examQStrokeMistakes = 0;  // 目前這一筆的錯誤次數
+
 function startExamQQuiz(char) {
+  examQStrokeMistakes = 0;
   examQWriter.quiz({
     onMistake:function(data){
       examQMistakes++;
+      examQStrokeMistakes++;
       flashBox('exam-quiz-target','red');
       sfxWrong();
+
+      // 錯 5 次：顯示輪廓提示讓學生完成
+      if (examQStrokeMistakes >= 5) {
+        examQStrokeMistakes = 0;
+        showToast('💡 太難了！看著提示寫完吧！');
+        // 顯示輪廓
+        try { examQWriter.showOutline(); } catch(e){}
+      }
     },
     onCorrectStroke:function(data){
       examQStrokes++;
+      examQStrokeMistakes = 0;  // 寫對了，重置本筆錯誤計數
       flashBox('exam-quiz-target','green');
       sfxCorrect();
     },
