@@ -1272,13 +1272,11 @@ body {
           <canvas id="dict-canvas"></canvas>
         </div>
 
-        <div class="dict-ctrl">
+        <!-- 清除 + 交卷 同一列，永遠顯示 -->
+        <div id="dict-ctrl-row" style="display:flex;gap:12px;justify-content:space-between;align-items:center;margin-top:12px">
           <button class="btn-ctrl btn-clear" onclick="clearDictCanvas()">🗑 清除重寫</button>
-        </div>
-
-        <!-- 交卷按鈕（固定在底部右側） -->
-        <div id="dict-submit-wrap" style="display:flex;justify-content:flex-end;padding:12px 0 4px">
-          <button class="btn-float btn-float-submit" id="btn-dict-submit" onclick="submitDictation()">
+          <button id="btn-dict-submit" onclick="submitDictation()"
+            style="padding:13px 28px;border:none;border-radius:50px;background:linear-gradient(135deg,#c22,var(--red));color:white;font-size:1rem;font-weight:900;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:8px;box-shadow:0 4px 16px rgba(0,0,0,.2)">
             <span>✓</span><span>交　卷</span>
           </button>
         </div>
@@ -2444,8 +2442,6 @@ function switchToDict() {
   // 確保書寫區顯示
   var dictCanvas = document.getElementById('dict-canvas-wrap');
   if (dictCanvas) dictCanvas.style.display = '';
-  var dictCtrl = document.querySelector('.dict-ctrl');
-  if (dictCtrl) dictCtrl.style.display = '';
   var dictInfoEl = document.querySelector('#panel-dict .dict-info');
   if (dictInfoEl) dictInfoEl.style.display = '';
   document.getElementById('mode-icon').textContent  = '📝';
@@ -2461,9 +2457,9 @@ function switchToDict() {
   // 移除舊的浮動按鈕（若有）
   var oldFbar = document.getElementById('dict-float-bar');
   if (oldFbar) oldFbar.remove();
-  // 顯示 panel 內的交卷按鈕
-  var submitWrap = document.getElementById('dict-submit-wrap');
-  if (submitWrap) submitWrap.style.display = 'flex';
+  // 確保控制列顯示
+  var ctrlRow = document.getElementById('dict-ctrl-row');
+  if (ctrlRow) ctrlRow.style.display = 'flex';
 
   // 等 DOM 更新後再初始化 canvas，避免 getBoundingClientRect 讀到 0
   setTimeout(function(){ initDictCanvas(); }, 80);
@@ -2549,13 +2545,11 @@ function clearDictCanvas() {
   // 恢復書寫區
   var dictCanvas = document.getElementById('dict-canvas-wrap');
   if (dictCanvas) dictCanvas.style.display = '';
-  var dictCtrl = document.querySelector('.dict-ctrl');
-  if (dictCtrl) dictCtrl.style.display = '';
   var dictInfo = document.querySelector('#panel-dict .dict-info');
   if (dictInfo) dictInfo.style.display = '';
-  // 顯示交卷按鈕
-  var submitWrap = document.getElementById('dict-submit-wrap');
-  if (submitWrap) submitWrap.style.display = 'flex';
+  // 恢復控制列
+  var ctrlRow = document.getElementById('dict-ctrl-row');
+  if (ctrlRow) ctrlRow.style.display = 'flex';
 }
 
 function retryDict() {
@@ -2598,14 +2592,12 @@ function submitDictation() {
   // 隱藏書寫區，只顯示結果面板
   var dictCanvas = document.getElementById('dict-canvas-wrap');
   if (dictCanvas) dictCanvas.style.display = 'none';
-  var dictCtrl = document.querySelector('.dict-ctrl');
-  if (dictCtrl) dictCtrl.style.display = 'none';
   var dictInfo = document.querySelector('#panel-dict .dict-info');
   if (dictInfo) dictInfo.style.display = 'none';
 
-  // 隱藏交卷按鈕
-  var submitWrap = document.getElementById('dict-submit-wrap');
-  if (submitWrap) submitWrap.style.display = 'none';
+  // 隱藏整列控制按鈕（清除+交卷）
+  var ctrlRow = document.getElementById('dict-ctrl-row');
+  if (ctrlRow) ctrlRow.style.display = 'none';
 
   document.getElementById('result-panel').classList.add('show');
   sfxSwipe();
