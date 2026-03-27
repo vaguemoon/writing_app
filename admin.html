@@ -941,25 +941,28 @@ function browseVersion(versionId, versionName) {
     '<div class="loading-wrap"><div class="spinner"></div></div>';
 
   db.collection('curriculum').doc(versionId)
-    .collection('lessons').orderBy('grade').orderBy('lessonNum')
-    .get().then(function(snap) {
+    .collection('lessons').get().then(function(snap) {
       if (snap.empty) {
         document.getElementById('curriculum-content').innerHTML =
           '<div style="color:var(--muted);font-size:.88rem;font-weight:600;padding:8px 0">這個版本還沒有課程，請上傳 CSV 匯入。</div>';
         return;
       }
 
-      // 依年級分組
+      // 依年級分組，在 JS 排序（避免 Firestore 索引需求）
       var grades = {};
       var gradeOrder = [];
       snap.forEach(function(doc) {
         var d = doc.data();
         var g = d.grade || d.bookNum || '未知';
         if (!grades[g]) { grades[g] = []; gradeOrder.push(g); }
-        var entry = Object.assign({ id: doc.id }, d); grades[g].push(entry);
+        var entry = Object.assign({ id: doc.id }, d);
+        grades[g].push(entry);
       });
-      // 去重並保持原始順序
+      // 去重保持原始順序，每組內依課次排序
       gradeOrder = gradeOrder.filter(function(v,i,a){ return a.indexOf(v)===i; });
+      gradeOrder.forEach(function(g){
+        grades[g].sort(function(a,b){ return (a.lessonNum||0)-(b.lessonNum||0); });
+      });
 
       var container = document.getElementById('curriculum-content');
       container.innerHTML = '';

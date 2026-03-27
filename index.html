@@ -1877,8 +1877,7 @@ function onVersionChange() {
   if (!versionId || !db) return;
 
   db.collection('curriculum').doc(versionId)
-    .collection('lessons').orderBy('grade').orderBy('lessonNum')
-    .get().then(function(snap) {
+    .collection('lessons').get().then(function(snap) {
       curriculumData = {};
       var gradeOrder = [];
       snap.forEach(function(doc) {
@@ -1887,8 +1886,11 @@ function onVersionChange() {
         if (!curriculumData[g]) { curriculumData[g] = []; gradeOrder.push(g); }
         curriculumData[g].push(d);
       });
-      // 去重保持順序
+      // 去重保持順序，每組內依課次排序
       gradeOrder = gradeOrder.filter(function(v,i,a){ return a.indexOf(v)===i; });
+      gradeOrder.forEach(function(g){
+        curriculumData[g].sort(function(a,b){ return (a.lessonNum||0)-(b.lessonNum||0); });
+      });
       gradeOrder.forEach(function(bk) {
         var opt = document.createElement('option');
         opt.value = bk;
