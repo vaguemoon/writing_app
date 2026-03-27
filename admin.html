@@ -436,7 +436,7 @@ body {
         </div>
         <div class="stat-card stat-yellow">
           <div class="stat-num" id="stat-mastered">—</div>
-          <div class="stat-lbl">平均掌握字數</div>
+          <div class="stat-lbl">平均通過測驗字數</div>
         </div>
       </div>
 
@@ -621,9 +621,9 @@ body {
           <button class="btn-edit" style="margin-left:auto" onclick="saveCharStatus()">💾 儲存變更</button>
         </div>
         <div style="display:flex;gap:12px;margin-bottom:14px;flex-wrap:wrap">
-          <span class="badge badge-green">✓ 已掌握</span>
-          <span class="badge badge-yellow">◎ 練習中</span>
-          <span class="badge badge-gray">○ 未學習</span>
+          <span class="badge badge-green">✓ 通過測驗</span>
+          <span class="badge badge-yellow">◎ 通過練習</span>
+          <span class="badge badge-gray">○ 未練習</span>
         </div>
         <div class="char-status-grid" id="detail-chars"></div>
       </div>
@@ -825,6 +825,8 @@ function getLessonStatus(student, chars) {
 
 function renderCourseOverview(versions, allProgress, wrap) {
   wrap.innerHTML = '';
+  var total = allProgress.length;
+
   if (!versions.length) {
     wrap.innerHTML = '<div style="color:var(--muted);font-size:.88rem;font-weight:600;padding:8px 0">尚未建立課程，請先到「課程管理」新增課程。</div>';
     return;
@@ -832,9 +834,8 @@ function renderCourseOverview(versions, allProgress, wrap) {
 
   versions.forEach(function(v) {
     var vBlock = document.createElement('div');
-    vBlock.className = 'version-block';
+    vBlock.style.marginBottom = '16px';
 
-    // 版本標題列（可展開）
     var vHeader = document.createElement('div');
     vHeader.className = 'version-header';
     vHeader.innerHTML = '<span>📚 '+v.name+'</span><span class="version-toggle">▼</span>';
@@ -846,120 +847,51 @@ function renderCourseOverview(versions, allProgress, wrap) {
         vBody.classList.contains('open') ? '' : 'rotate(-90deg)';
     });
 
-    // 年級
     v.gradeOrder.forEach(function(grade) {
       var lessons = v.grades[grade] || [];
       if (!lessons.length) return;
 
-      var gBlock = document.createElement('div');
-      gBlock.className = 'grade-block';
+      var gLabel = document.createElement('div');
+      gLabel.className = 'grade-header';
+      gLabel.style.marginBottom = '6px';
+      gLabel.innerHTML = '📖 '+grade;
+      vBody.appendChild(gLabel);
 
-      var gHeader = document.createElement('div');
-      gHeader.className = 'grade-header';
-      gHeader.innerHTML = '<span>📖 '+grade+'</span><span style="margin-left:auto;font-size:.78rem">'+lessons.length+' 課 ▾</span>';
-      var gBody = document.createElement('div');
-      gBody.className = 'grade-body open';
-      gHeader.addEventListener('click', function(){
-        gBody.classList.toggle('open');
-      });
-
-      // 每一課
       lessons.forEach(function(lesson) {
         var chars = lesson.chars || [];
-        var lRow = document.createElement('div');
-        lRow.className = 'lesson-row';
+        var passCount = allProgress.filter(function(p){
+          return getLessonStatus(p, chars) === 'mastered';
+        }).length;
+        var pct = total ? Math.round(passCount/total*100) : 0;
+        var barColor = pct===100 ? 'var(--green)' : pct>0 ? 'var(--yellow)' : '#d0e4f5';
 
-        // 計算每個學生的課程狀態
-        var masteredStudents  = [];
-        var practicedStudents = [];
-        var notyetStudents    = [];
-        allProgress.forEach(function(p) {
-          var st = getLessonStatus(p, chars);
-          if (st === 'mastered')  masteredStudents.push(p);
-          else if (st === 'practiced') practicedStudents.push(p);
-          else notyetStudents.push(p);
-        });
+        var row = document.createElement('div');
+        row.style.cssText = 'display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;border:1.5px solid var(--border);background:white;margin-bottom:6px;';
 
-        // 課程標題列（可展開）
-        var lHeader = document.createElement('div');
-        lHeader.className = 'lesson-row-header';
+        var info = document.createElement('div');
+        info.style.cssText = 'min-width:130px;';
+        info.innerHTML = '<span style="font-size:.82rem;font-weight:900;color:var(--blue-dk)">第'+lesson.lessonNum+'課</span>'
+          +'<span style="font-size:.82rem;font-weight:700;color:var(--gray);margin-left:6px">'+lesson.name+'</span>';
 
-        var numEl = document.createElement('div');
-        numEl.className = 'lesson-row-num';
-        numEl.textContent = '第 '+lesson.lessonNum+' 課';
+        var barWrap = document.createElement('div');
+        barWrap.style.cssText = 'flex:1;height:10px;background:#e2e8f0;border-radius:20px;overflow:hidden;';
+        var bar = document.createElement('div');
+        bar.style.cssText = 'height:100%;width:'+pct+'%;background:'+barColor+';border-radius:20px;transition:width .5s ease;';
+        barWrap.appendChild(bar);
 
-        var nameEl = document.createElement('div');
-        nameEl.className = 'lesson-row-name';
-        nameEl.textContent = lesson.name || '';
+        var count = document.createElement('div');
+        count.style.cssText = 'font-size:.8rem;font-weight:800;color:var(--green);min-width:70px;text-align:right;white-space:nowrap;';
+        count.textContent = passCount+' / '+total+' 人通過';
 
-        var charsEl = document.createElement('div');
-        charsEl.className = 'lesson-row-chars';
-        charsEl.textContent = chars.join('');
-
-        // 摘要圖示
-        var sumEl = document.createElement('div');
-        sumEl.className = 'lesson-row-summary';
-        if (masteredStudents.length)
-          sumEl.innerHTML += '<span style="color:var(--green)">✅'+masteredStudents.length+'</span>';
-        if (practicedStudents.length)
-          sumEl.innerHTML += '<span style="color:var(--yellow)">🔄'+practicedStudents.length+'</span>';
-        if (notyetStudents.length)
-          sumEl.innerHTML += '<span style="color:var(--muted)">⬜'+notyetStudents.length+'</span>';
-
-        lHeader.appendChild(numEl);
-        lHeader.appendChild(nameEl);
-        lHeader.appendChild(charsEl);
-        lHeader.appendChild(sumEl);
-
-        // 展開內容
-        var lBody = document.createElement('div');
-        lBody.className = 'lesson-row-body';
-
-        var groups = [
-          { label:'✅ 已全部掌握', list: masteredStudents,  cls:'mastered' },
-          { label:'🔄 練習中',     list: practicedStudents, cls:'practiced' },
-          { label:'⬜ 尚未開始',   list: notyetStudents,    cls:'notyet' }
-        ];
-        groups.forEach(function(g) {
-          var glabel = document.createElement('div');
-          glabel.className = 'student-group-label';
-          glabel.textContent = g.label + '（'+g.list.length+' 人）';
-          lBody.appendChild(glabel);
-
-          var chips = document.createElement('div');
-          chips.className = 'student-chips';
-          if (!g.list.length) {
-            var empty = document.createElement('span');
-            empty.style.cssText = 'font-size:.78rem;color:var(--muted);font-weight:600';
-            empty.textContent = '（無）';
-            chips.appendChild(empty);
-          } else {
-            g.list.forEach(function(p) {
-              var chip = document.createElement('div');
-              chip.className = 'student-chip ' + g.cls;
-              chip.textContent = p.studentName;
-              if (g.cls !== 'notyet') {
-                chip.title = '點擊查看詳細';
-                chip.addEventListener('click', (function(id){ return function(){ showStudentDetail(id); }; })(p.studentId));
-              }
-              chips.appendChild(chip);
-            });
-          }
-          lBody.appendChild(chips);
-        });
-
-        lHeader.addEventListener('click', function(){
-          lBody.classList.toggle('open');
-        });
-
-        lRow.appendChild(lHeader);
-        lRow.appendChild(lBody);
-        gBody.appendChild(lRow);
+        row.appendChild(info);
+        row.appendChild(barWrap);
+        row.appendChild(count);
+        vBody.appendChild(row);
       });
 
-      gBlock.appendChild(gHeader);
-      gBlock.appendChild(gBody);
-      vBody.appendChild(gBlock);
+      var gap = document.createElement('div');
+      gap.style.height = '8px';
+      vBody.appendChild(gap);
     });
 
     vBlock.appendChild(vHeader);
@@ -1138,7 +1070,7 @@ function renderDetailChars() {
   });
   document.getElementById('detail-chars').innerHTML = chars.map(function(c) {
     var st  = currentDetailCS[c] || 'new';
-    var lbl = {mastered:'已掌握', practiced:'練習中', new:'未學習'}[st];
+    var lbl = {mastered:'通過測驗', practiced:'通過練習', new:'未練習'}[st];
     return '<div class="char-status-item '+st+'" onclick="cycleCharStatus(\''+c+'\')">'
       +'<div class="char-glyph">'+c+'</div>'
       +'<div class="char-lbl">'+lbl+'</div></div>';

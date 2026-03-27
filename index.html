@@ -2442,8 +2442,7 @@ function switchToDict() {
   // 確保書寫區顯示
   var dictCanvas = document.getElementById('dict-canvas-wrap');
   if (dictCanvas) dictCanvas.style.display = '';
-  var dictInfoEl = document.querySelector('#panel-dict .dict-info');
-  if (dictInfoEl) dictInfoEl.style.display = '';
+
   document.getElementById('mode-icon').textContent  = '📝';
   document.getElementById('mode-title').textContent = '默寫測驗';
   document.getElementById('mode-sub').textContent   = '靠自己的記憶把字寫出來';
@@ -2457,9 +2456,7 @@ function switchToDict() {
   // 移除舊的浮動按鈕（若有）
   var oldFbar = document.getElementById('dict-float-bar');
   if (oldFbar) oldFbar.remove();
-  // 確保控制列顯示
-  var ctrlRow = document.getElementById('dict-ctrl-row');
-  if (ctrlRow) ctrlRow.style.display = 'flex';
+
 
   // 等 DOM 更新後再初始化 canvas，避免 getBoundingClientRect 讀到 0
   setTimeout(function(){ initDictCanvas(); }, 80);
@@ -2542,14 +2539,6 @@ function clearDictCanvas() {
   dDrawing = false; dictScore = -1;
   dAllStrokes = []; dCurrentStroke = [];
   document.getElementById('result-panel').classList.remove('show');
-  // 恢復書寫區
-  var dictCanvas = document.getElementById('dict-canvas-wrap');
-  if (dictCanvas) dictCanvas.style.display = '';
-  var dictInfo = document.querySelector('#panel-dict .dict-info');
-  if (dictInfo) dictInfo.style.display = '';
-  // 恢復控制列
-  var ctrlRow = document.getElementById('dict-ctrl-row');
-  if (ctrlRow) ctrlRow.style.display = 'flex';
 }
 
 function retryDict() {
@@ -2572,39 +2561,30 @@ function submitDictation() {
   for (var i=3;i<px.length;i+=4){ if(px[i]>20){hasInk=true;break;} }
   if (!hasInk) { showToast('📝 還沒寫喔！請先在格子裡寫字！'); return; }
 
-  // 左側：學生筆跡縮圖（固定 140px）
+  // 學生筆跡縮圖
   var sz = 140;
   var oc = document.getElementById('compare-student');
-  oc.width  = sz;
-  oc.height = sz;
+  oc.width = sz; oc.height = sz;
   oc.getContext('2d').drawImage(dCanvas, 0, 0, sz, sz);
 
-  // 右側：正確字形
-  var rf = document.getElementById('compare-ref');
-  rf.textContent = char;
+  // 正確字形
+  document.getElementById('compare-ref').textContent = char;
 
   // 重置自評區
   document.getElementById('after-eval').style.display = 'none';
   document.getElementById('retry-only-btn').style.display = 'none';
-  var btns = document.querySelectorAll('.btn-eval');
-  btns.forEach(function(b){ b.style.opacity='1'; b.disabled=false; });
+  document.querySelectorAll('.btn-eval').forEach(function(b){
+    b.style.opacity='1'; b.disabled=false;
+  });
 
-  // 隱藏書寫區，只顯示結果面板
-  var dictCanvas = document.getElementById('dict-canvas-wrap');
-  if (dictCanvas) dictCanvas.style.display = 'none';
-  var dictInfo = document.querySelector('#panel-dict .dict-info');
-  if (dictInfo) dictInfo.style.display = 'none';
-
-  // 隱藏整列控制按鈕（清除+交卷）
-  var ctrlRow = document.getElementById('dict-ctrl-row');
-  if (ctrlRow) ctrlRow.style.display = 'none';
-
+  // 直接顯示結果面板（不隱藏書寫區，避免顯示問題）
   document.getElementById('result-panel').classList.add('show');
   sfxSwipe();
 
-  // scroll 到頂部
-  var screen = document.getElementById('screen-learn');
-  if (screen) screen.scrollTo({top:0, behavior:'smooth'});
+  setTimeout(function(){
+    var rp = document.getElementById('result-panel');
+    if (rp) rp.scrollIntoView({behavior:'smooth', block:'nearest'});
+  }, 150);
 }
 
 // 學生自評（只有兩個選項）
