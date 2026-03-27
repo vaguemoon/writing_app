@@ -2126,6 +2126,13 @@ function switchToPractice() {
   document.getElementById('mode-title').textContent = '筆順練習';
   document.getElementById('mode-sub').textContent   = '看左邊筆順，在右邊格子照著寫';
 
+  // 練習模式顯示目標字
+  var char = chars[currentIdx];
+  if (char) {
+    document.getElementById('learn-title').innerHTML =
+      '「<span style="color:var(--orange);font-family:\"Noto Serif TC\",serif">'+char+'</span>」';
+  }
+
   // 移除默寫浮動列
   var fbar = document.getElementById('dict-float-bar');
   if (fbar) fbar.remove();
@@ -2418,6 +2425,9 @@ function switchToDict() {
   document.getElementById('mode-icon').textContent  = '📝';
   document.getElementById('mode-title').textContent = '默寫測驗';
   document.getElementById('mode-sub').textContent   = '靠自己的記憶把字寫出來';
+
+  // 默寫時隱藏標題字，不給學生提示
+  document.getElementById('learn-title').textContent = '默寫測驗';
 
   // 底部：隱藏全寬列，改用右下角浮動小按鈕
   var bb = document.getElementById('bottom-bar');
