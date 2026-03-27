@@ -1276,6 +1276,13 @@ body {
           <button class="btn-ctrl btn-clear" onclick="clearDictCanvas()">🗑 清除重寫</button>
         </div>
 
+        <!-- 交卷按鈕（固定在底部右側） -->
+        <div id="dict-submit-wrap" style="display:flex;justify-content:flex-end;padding:12px 0 4px">
+          <button class="btn-float btn-float-submit" id="btn-dict-submit" onclick="submitDictation()">
+            <span>✓</span><span>交　卷</span>
+          </button>
+        </div>
+
         <!-- 結果面板：疊加對比 + 學生自評 -->
         <div class="result-panel" id="result-panel">
           <div style="font-size:1rem;font-weight:900;text-align:center">✏️ 對照結果</div>
@@ -2448,17 +2455,15 @@ function switchToDict() {
   // 默寫時隱藏標題字，不給學生提示
   document.getElementById('learn-title').textContent = '默寫測驗';
 
-  // 底部：隱藏全寬列，改用右下角浮動小按鈕
+  // 隱藏全寬底部列
   var bb = document.getElementById('bottom-bar');
-  bb.style.display = 'none';
-  var old = document.getElementById('dict-float-bar');
-  if (old) old.remove();
-  var fbar = document.createElement('div');
-  fbar.className = 'dict-float-bar'; fbar.id = 'dict-float-bar';
-  fbar.innerHTML =
-    '<button class="btn-float btn-float-submit" onclick="submitDictation()">'
-    +'<span>✓</span><span>交　卷</span></button>';
-  document.body.appendChild(fbar);
+  if (bb) bb.style.display = 'none';
+  // 移除舊的浮動按鈕（若有）
+  var oldFbar = document.getElementById('dict-float-bar');
+  if (oldFbar) oldFbar.remove();
+  // 顯示 panel 內的交卷按鈕
+  var submitWrap = document.getElementById('dict-submit-wrap');
+  if (submitWrap) submitWrap.style.display = 'flex';
 
   // 等 DOM 更新後再初始化 canvas，避免 getBoundingClientRect 讀到 0
   setTimeout(function(){ initDictCanvas(); }, 80);
@@ -2548,14 +2553,9 @@ function clearDictCanvas() {
   if (dictCtrl) dictCtrl.style.display = '';
   var dictInfo = document.querySelector('#panel-dict .dict-info');
   if (dictInfo) dictInfo.style.display = '';
-  // 重建交卷按鈕
-  var oldFbar = document.getElementById('dict-float-bar');
-  if (oldFbar) oldFbar.remove();
-  var newFbar = document.createElement('div');
-  newFbar.className = 'dict-float-bar';
-  newFbar.id = 'dict-float-bar';
-  newFbar.innerHTML = '<button class="btn-float btn-float-submit" onclick="submitDictation()"><span>✓</span><span>交　卷</span></button>';
-  document.body.appendChild(newFbar);
+  // 顯示交卷按鈕
+  var submitWrap = document.getElementById('dict-submit-wrap');
+  if (submitWrap) submitWrap.style.display = 'flex';
 }
 
 function retryDict() {
@@ -2603,9 +2603,9 @@ function submitDictation() {
   var dictInfo = document.querySelector('#panel-dict .dict-info');
   if (dictInfo) dictInfo.style.display = 'none';
 
-  // 移除交卷浮動按鈕（避免與結果面板衝突）
-  var fbar = document.getElementById('dict-float-bar');
-  if (fbar) fbar.remove();
+  // 隱藏交卷按鈕
+  var submitWrap = document.getElementById('dict-submit-wrap');
+  if (submitWrap) submitWrap.style.display = 'none';
 
   document.getElementById('result-panel').classList.add('show');
   sfxSwipe();
