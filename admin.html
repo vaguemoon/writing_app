@@ -277,6 +277,35 @@ body {
 }
 .btn-tiny:hover { border-color:var(--red); color:var(--red); }
 
+/* 字跡 Modal */
+.stroke-modal-overlay {
+  position:fixed; inset:0; background:rgba(0,0,0,.5);
+  display:flex; align-items:center; justify-content:center;
+  z-index:9999;
+}
+.stroke-modal {
+  background:white; border-radius:20px; padding:28px;
+  box-shadow:0 20px 60px rgba(0,0,0,.25);
+  display:flex; flex-direction:column; align-items:center; gap:16px;
+  min-width:280px;
+}
+.stroke-modal-title {
+  font-size:1.1rem; font-weight:900; color:var(--text);
+}
+.stroke-canvas-wrap {
+  border:3px solid var(--border); border-radius:14px;
+  background:white; overflow:hidden;
+  background-image:
+    linear-gradient(to right, #e2e8f0 1px,transparent 1px),
+    linear-gradient(to bottom,#e2e8f0 1px,transparent 1px);
+  background-size:33.333% 33.333%, 33.333% 33.333%;
+}
+.stroke-modal-close {
+  padding:9px 28px; border:none; border-radius:10px;
+  background:var(--blue); color:white;
+  font-size:.9rem; font-weight:800; cursor:pointer; font-family:inherit;
+}
+
 /* 載入動畫 */
 .spinner {
   width:28px; height:28px; border-radius:50%;
@@ -736,8 +765,9 @@ function renderStudentList(students) {
 // ══ 學生詳細頁 ══
 var allStudentsCache = [];
 
-var currentDetailId = null;
-var currentDetailCS = {};
+var currentDetailId      = null;
+var currentDetailCS      = {};
+var currentDetailStrokes = {};
 
 function showStudentDetail(studentId) {
   if (!db) return;
@@ -763,7 +793,8 @@ function showStudentDetail(studentId) {
     var mastered = chars.filter(function(c){ return cs[c]==='mastered'; }).length;
     document.getElementById('detail-sub').textContent =
       '最後登入：'+lastSeen+'　｜　已掌握 '+mastered+' / '+chars.length+' 個字';
-    currentDetailCS = JSON.parse(JSON.stringify(cs));
+    currentDetailCS      = JSON.parse(JSON.stringify(cs));
+    currentDetailStrokes = pd.exists ? (pd.data().strokes || {}) : {};
     if (!chars.length) {
       document.getElementById('detail-chars').innerHTML =
         '<div style="color:var(--muted);font-size:.88rem;font-weight:600;padding:12px 0">這位學生還沒有學習紀錄。</div>';
@@ -1267,6 +1298,70 @@ function saveManualLesson() {
     status.style.color = 'var(--red)';
     status.textContent = '❌ 失敗：' + e.message;
   });
+}
+
+// ══ 字跡查看 Modal ══
+function showStrokeModal(char) {
+  var strokes = currentDetailStrokes[char];
+  if (!strokes || !strokes.length) return;
+
+  // 建立 overlay
+  var overlay = document.createElement('div');
+  overlay.className = 'stroke-modal-overlay';
+  overlay.addEventListener('click', function(e){
+    if (e.target === overlay) document.body.removeChild(overlay);
+  });
+
+  var modal = document.createElement('div');
+  modal.className = 'stroke-modal';
+
+  var title = document.createElement('div');
+  title.className = 'stroke-modal-title';
+  title.textContent = '「' + char + '」的字跡';
+
+  // Canvas 繪製
+  var SZ = 240;
+  var wrap = document.createElement('div');
+  wrap.className = 'stroke-canvas-wrap';
+  wrap.style.width = SZ + 'px';
+  wrap.style.height = SZ + 'px';
+
+  var canvas = document.createElement('canvas');
+  canvas.width = canvas.height = SZ;
+  canvas.style.display = 'block';
+  wrap.appendChild(canvas);
+
+  var ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, SZ, SZ);
+  ctx.strokeStyle = '#1e2d3d';
+  ctx.lineWidth   = Math.max(4, Math.round(SZ * 0.016));
+  ctx.lineCap     = 'round';
+  ctx.lineJoin    = 'round';
+
+  // 重新繪製筆畫（座標從 0-1 還原到 canvas 尺寸）
+  strokes.forEach(function(stroke) {
+    if (!stroke || stroke.length < 2) return;
+    ctx.beginPath();
+    stroke.forEach(function(pt, pi) {
+      var x = pt[0] * SZ;
+      var y = pt[1] * SZ;
+      if (pi === 0) ctx.moveTo(x, y);
+      else          ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+  });
+
+  var closeBtn = document.createElement('button');
+  closeBtn.className = 'stroke-modal-close';
+  closeBtn.textContent = '關閉';
+  closeBtn.addEventListener('click', function(){ document.body.removeChild(overlay); });
+
+  modal.appendChild(title);
+  modal.appendChild(wrap);
+  modal.appendChild(closeBtn);
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
 }
 
 // ══ Toast ══

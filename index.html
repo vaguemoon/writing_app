@@ -1676,6 +1676,17 @@ function saveProgress() {
     .catch(function(e){ console.warn('saveProgress error:', e); });
 }
 
+// 儲存單個字的筆畫路徑
+function saveStroke(char, strokes) {
+  if (!currentStudent || !db) return;
+  var update = {};
+  update['strokes.' + char] = strokes;
+  db.collection('students').doc(currentStudent.id)
+    .collection('progress').doc('hanzi')
+    .update(update)
+    .catch(function(e){ console.warn('saveStroke error:', e); });
+}
+
 // ── 其他教學應用使用範例（未來新增時參考）──
 // function saveOtherAppProgress(appName, data) {
 //   if (!currentStudent || !db) return;
@@ -1810,6 +1821,9 @@ var quizWriter = null;
 
 var dCanvas, dCtx, dDrawing = false;
 var dSize = 340;
+var dCurrentStroke = [];   // 當前筆畫的座標點
+var dAllStrokes    = [];   // 本次默寫的所有筆畫
+var charStrokes    = {};   // {字: [[stroke1],[stroke2],...]} 所有字的筆畫路徑
 
 // ═══════════════════════════════════════
 //  畫面切換
@@ -2467,7 +2481,9 @@ function initDictCanvas() {
   old.parentNode.replaceChild(neo, old);
   dCanvas  = neo;
   dCtx     = dCanvas.getContext('2d');
-  dDrawing = false;
+  dDrawing     = false;
+  dAllStrokes  = [];
+  dCurrentStroke = [];
 
   dCanvas.addEventListener('mousedown',  dStart);
   dCanvas.addEventListener('mousemove',  dMove);
@@ -2483,22 +2499,42 @@ function dPos(e) {
   var r = dCanvas.getBoundingClientRect();
   return { x:(e.clientX-r.left)*(dCanvas.width/r.width), y:(e.clientY-r.top)*(dCanvas.height/r.height) };
 }
-function dStart(e) { dDrawing=true; var p=dPos(e); dCtx.beginPath(); dCtx.moveTo(p.x,p.y); }
-function dMove(e)  {
-  if (!dDrawing) return;
-  var p=dPos(e);
-  dCtx.lineTo(p.x,p.y);
-  dCtx.strokeStyle='#1e2d3d';
-  dCtx.lineWidth=Math.max(5,Math.round(dSize*0.016));
-  dCtx.lineCap='round'; dCtx.lineJoin='round'; dCtx.stroke();
+function dStart(e) {
+  dDrawing = true;
+  dCurrentStroke = [];
+  var p = dPos(e);
+  dCurrentStroke.push([Math.round(p.x), Math.round(p.y)]);
+  dCtx.beginPath();
+  dCtx.moveTo(p.x, p.y);
 }
-function dEnd() { if (!dDrawing) return; dDrawing=false; dCtx.closePath(); }
+function dMove(e) {
+  if (!dDrawing) return;
+  var p = dPos(e);
+  // 每隔 3 個點記錄一次，減少資料量
+  if (dCurrentStroke.length === 0 || dCurrentStroke.length % 3 === 0) {
+    dCurrentStroke.push([Math.round(p.x), Math.round(p.y)]);
+  }
+  dCtx.lineTo(p.x, p.y);
+  dCtx.strokeStyle = '#1e2d3d';
+  dCtx.lineWidth = Math.max(5, Math.round(dSize * 0.016));
+  dCtx.lineCap = 'round'; dCtx.lineJoin = 'round'; dCtx.stroke();
+}
+function dEnd() {
+  if (!dDrawing) return;
+  dDrawing = false;
+  dCtx.closePath();
+  if (dCurrentStroke.length > 1) {
+    dAllStrokes.push(dCurrentStroke.slice());
+  }
+  dCurrentStroke = [];
+}
 
 function clearDictCanvas() {
   sfxTap();
   if (!dCtx) return;
   dCtx.clearRect(0,0,dCanvas.width,dCanvas.height);
   dDrawing = false; dictScore = -1;
+  dAllStrokes = []; dCurrentStroke = [];
   document.getElementById('result-panel').classList.remove('show');
 }
 
@@ -2557,9 +2593,23 @@ function selfEval(result) {
   });
 
   if (result === 'great') {
-    // 像：顯示慶祝訊息 + 下一個字按鈕
     sfxCelebrate();
     charStatus[char] = 'mastered';
+
+    // 把筆畫路徑標準化到 0-1 範圍（不依賴 canvas 尺寸）存入 Firebase
+    if (dAllStrokes.length > 0 && dSize > 0) {
+      var normStrokes = dAllStrokes.map(function(stroke) {
+        return stroke.map(function(pt) {
+          return [
+            Math.round(pt[0] / dSize * 1000) / 1000,
+            Math.round(pt[1] / dSize * 1000) / 1000
+          ];
+        });
+      });
+      charStrokes[char] = normStrokes;
+      saveStroke(char, normStrokes);
+    }
+
     var ae = document.getElementById('after-eval');
     var vt = document.getElementById('eval-verdict');
     ae.style.display = 'flex';
