@@ -439,6 +439,48 @@ body {
         <div id="csv-preview" style="margin-top:12px"></div>
       </div>
 
+      <!-- 手動新增課程 -->
+      <div class="card" style="margin-bottom:16px" id="manual-add-card" style="display:none">
+        <div class="card-title">✏️ 手動新增課程</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+          <div>
+            <label style="font-size:.78rem;font-weight:800;color:var(--muted);display:block;margin-bottom:5px">版本</label>
+            <select id="manual-version-select"
+              style="width:100%;border:2px solid var(--border);border-radius:8px;padding:9px 12px;font-size:.9rem;font-family:inherit;outline:none;background:white;color:var(--text)">
+              <option value="">— 請選擇版本 —</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:.78rem;font-weight:800;color:var(--muted);display:block;margin-bottom:5px">年級</label>
+            <input id="manual-grade" type="text" placeholder="例如：一上"
+              style="width:100%;border:2px solid var(--border);border-radius:8px;padding:9px 12px;font-size:.9rem;font-family:inherit;outline:none">
+          </div>
+          <div>
+            <label style="font-size:.78rem;font-weight:800;color:var(--muted);display:block;margin-bottom:5px">課次（數字）</label>
+            <input id="manual-lesson-num" type="number" placeholder="例如：1" min="1"
+              style="width:100%;border:2px solid var(--border);border-radius:8px;padding:9px 12px;font-size:.9rem;font-family:inherit;outline:none">
+          </div>
+          <div>
+            <label style="font-size:.78rem;font-weight:800;color:var(--muted);display:block;margin-bottom:5px">課名</label>
+            <input id="manual-lesson-name" type="text" placeholder="例如：拍拍手"
+              style="width:100%;border:2px solid var(--border);border-radius:8px;padding:9px 12px;font-size:.9rem;font-family:inherit;outline:none">
+          </div>
+        </div>
+        <div style="margin-bottom:12px">
+          <label style="font-size:.78rem;font-weight:800;color:var(--muted);display:block;margin-bottom:5px">生字</label>
+          <input id="manual-chars" type="text" placeholder="例如：山水火土木" maxlength="30"
+            style="width:100%;border:2px solid var(--border);border-radius:8px;padding:9px 12px;font-size:1.1rem;font-family:'Noto Sans TC',sans-serif;letter-spacing:4px;outline:none"
+            oninput="updateManualPreview()">
+          <div id="manual-chars-preview" style="margin-top:8px;min-height:24px"></div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center">
+          <button class="btn-save-lesson" onclick="saveManualLesson()">
+            <span>💾</span><span>新增課程</span>
+          </button>
+          <span id="manual-status" style="font-size:.82rem;font-weight:700"></span>
+        </div>
+      </div>
+
       <!-- 課程內容瀏覽 -->
       <div class="card" id="curriculum-browse-card" style="display:none">
         <div class="card-title">
@@ -853,14 +895,20 @@ function loadVersions() {
       allVersions.push({ id: doc.id, name: doc.data().name, lessonCount: doc.data().lessonCount || 0 });
     });
 
-    // 更新版本選單（CSV 上傳用，若元素存在才更新）
-    var sel = document.getElementById('csv-version-select');
-    if (sel) {
-      sel.innerHTML = '<option value="">— 請先選擇版本 —</option>'
+    // 更新所有版本選單
+    var selIds = ['csv-version-select','manual-version-select'];
+    selIds.forEach(function(selId) {
+      var sel = document.getElementById(selId);
+      if (!sel) return;
+      sel.innerHTML = '<option value="">— 請選擇版本 —</option>'
         + allVersions.map(function(v){
             return '<option value="'+v.id+'">'+v.name+'</option>';
           }).join('');
-    }
+    });
+
+    // 顯示手動新增卡片（有版本才能新增課程）
+    var manualCard = document.getElementById('manual-add-card');
+    if (manualCard) manualCard.style.display = allVersions.length ? '' : 'none';
 
     if (!allVersions.length) {
       wrap.innerHTML = '<div style="color:var(--muted);font-size:.88rem;font-weight:600;padding:8px 0">還沒有課程版本，請先建立。</div>';
@@ -1126,6 +1174,70 @@ function importCSV() {
         loadVersions();
       }
     });
+  });
+}
+
+// ══ 手動新增課程 ══
+function updateManualPreview() {
+  var raw   = document.getElementById('manual-chars').value;
+  var chars = Array.from(new Set(raw.replace(/ /g,'').split('').filter(Boolean)));
+  var prev  = document.getElementById('manual-chars-preview');
+  if (!prev) return;
+  if (!chars.length) { prev.innerHTML = ''; return; }
+  prev.innerHTML = '<div class="lesson-chars-chip" style="font-size:1.2rem;letter-spacing:4px">'+chars.join('')+'</div>';
+}
+
+function saveManualLesson() {
+  var versionId  = document.getElementById('manual-version-select').value;
+  var grade      = document.getElementById('manual-grade').value.trim();
+  var lessonNum  = parseInt(document.getElementById('manual-lesson-num').value);
+  var name       = document.getElementById('manual-lesson-name').value.trim();
+  var raw        = document.getElementById('manual-chars').value;
+  var chars      = Array.from(new Set(raw.replace(/ /g,'').split('').filter(Boolean)));
+  var status     = document.getElementById('manual-status');
+
+  if (!versionId)      { status.style.color='var(--red)'; status.textContent='請選擇版本！'; return; }
+  if (!grade)          { status.style.color='var(--red)'; status.textContent='請輸入年級！'; return; }
+  if (isNaN(lessonNum)){ status.style.color='var(--red)'; status.textContent='課次必須是數字！'; return; }
+  if (!name)           { status.style.color='var(--red)'; status.textContent='請輸入課名！'; return; }
+  if (!chars.length)   { status.style.color='var(--red)'; status.textContent='請輸入生字！'; return; }
+  if (!db) return;
+
+  status.style.color = 'var(--muted)';
+  status.textContent = '儲存中…';
+
+  var docId  = grade + '_l' + lessonNum;
+  var colRef = db.collection('curriculum').doc(versionId).collection('lessons');
+
+  colRef.doc(docId).set({
+    grade:     grade,
+    lessonNum: lessonNum,
+    name:      name,
+    chars:     chars
+  }).then(function() {
+    // 更新版本課數
+    return colRef.get().then(function(snap) {
+      return db.collection('curriculum').doc(versionId)
+        .update({ lessonCount: snap.size });
+    });
+  }).then(function() {
+    status.style.color = 'var(--green)';
+    status.textContent = '✅ 新增成功！';
+    // 清空欄位
+    document.getElementById('manual-grade').value       = '';
+    document.getElementById('manual-lesson-num').value  = '';
+    document.getElementById('manual-lesson-name').value = '';
+    document.getElementById('manual-chars').value       = '';
+    document.getElementById('manual-chars-preview').innerHTML = '';
+    // 若目前正在瀏覽同一版本，重新載入
+    if (currentVersionId === versionId) {
+      browseVersion(versionId, currentVersionName);
+    }
+    loadVersions();
+    setTimeout(function(){ status.textContent = ''; }, 3000);
+  }).catch(function(e) {
+    status.style.color = 'var(--red)';
+    status.textContent = '❌ 失敗：' + e.message;
   });
 }
 
