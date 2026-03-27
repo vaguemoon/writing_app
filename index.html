@@ -2001,13 +2001,13 @@ function updateProgressBar() {
     counts.innerHTML =
       '<div class="progress-count-item">'
       +'<div class="progress-count-dot" style="background:var(--green)"></div>'
-      +'<span style="color:var(--green-dk)">已掌握 '+nMastered+' 字</span></div>'
+      +'<span style="color:var(--green-dk)">通過測驗 '+nMastered+' 字</span></div>'
       +'<div class="progress-count-item">'
       +'<div class="progress-count-dot" style="background:var(--yellow)"></div>'
-      +'<span style="color:#b07800">練習中 '+nPracticed+' 字</span></div>'
+      +'<span style="color:#b07800">通過練習 '+nPracticed+' 字</span></div>'
       +'<div class="progress-count-item">'
       +'<div class="progress-count-dot" style="background:#d0e4f5"></div>'
-      +'<span style="color:var(--muted)">未學習 '+nNew+' 字</span></div>';
+      +'<span style="color:var(--muted)">未練習 '+nNew+' 字</span></div>';
   }
 }
 
@@ -2017,7 +2017,7 @@ function renderMenu() {
   updateProgressBar();
   body.innerHTML = chars.map(function(c,i){
     var st  = charStatus[c]||'new';
-    var lbl = {new:'尚未學習',practiced:'練習中',mastered:'已掌握'}[st];
+    var lbl = {new:'尚未學習',practiced:'通過練習',mastered:'通過測驗'}[st];
     var cls = {new:'status-new',practiced:'status-practiced',mastered:'status-mastered'}[st];
     var card= st==='mastered'?'char-card mastered':st==='practiced'?'char-card practiced':'char-card';
     return '<div class="'+card+'" id="card-'+i+'" onclick="onCardClick(event,'+i+')">'
@@ -2208,18 +2208,16 @@ function startQuiz() {
       if (mistakes === 0) {
         sfxCelebrate();
         setFeedback('fb-ok fb-big','🎉 完美！一筆都沒錯！');
-        charStatus[chars[currentIdx]]='practiced';  // 練習完只算練習中，測驗通過才算掌握
         showToast('🎉 完美！繼續默寫測驗吧！');
       } else if (mistakes <= 3) {
         sfxPass();
         setFeedback('fb-praise fb-big','😊 完成！錯了 '+mistakes+' 筆，再練更好！');
-        charStatus[chars[currentIdx]]='practiced';
         showToast('👍 完成！繼續加油！');
       } else {
         sfxWrong();
         setFeedback('fb-wrong fb-big','💪 完成！錯了 '+mistakes+' 筆，多練幾次！');
-        charStatus[chars[currentIdx]]='practiced';
       }
+      // 筆順練習不改變狀態，只有默寫和綜合測驗才算數
       renderMenu();
       // 練習完成：解鎖底部「開始默寫」大按鈕
       var ms = document.getElementById('btn-mode-switch');
@@ -2372,7 +2370,7 @@ function showExamResult(char, mistakes, total) {
     icon.textContent  = '🎉';
     title.textContent = '通過！';
     title.className   = 'exam-result-title exam-result-pass';
-    charStatus[char]  = 'mastered';
+    charStatus[char]  = 'practiced';  // 單字測驗通過 → 通過練習
     showToast(mistakes === 0 ? '🎉 完美通過！' : '👍 通過了！');
     nextBtn.style.display  = '';
     retryBtn.style.display = 'none';
@@ -2381,7 +2379,7 @@ function showExamResult(char, mistakes, total) {
     icon.textContent  = '💪';
     title.textContent = '繼續加油！';
     title.className   = 'exam-result-title exam-result-fail';
-    charStatus[char]  = 'practiced';
+    // 未通過不改變狀態
     nextBtn.style.display  = 'none';
     retryBtn.style.display = '';
   }
@@ -2594,7 +2592,7 @@ function selfEval(result) {
 
   if (result === 'great') {
     sfxCelebrate();
-    charStatus[char] = 'mastered';
+    charStatus[char] = 'practiced';  // 默寫通過 → 通過練習
 
     // 把筆畫路徑標準化到 0-1 範圍（不依賴 canvas 尺寸）存入 Firebase
     if (dAllStrokes.length > 0 && dSize > 0) {
@@ -2619,9 +2617,8 @@ function selfEval(result) {
     document.getElementById('btn-dict-next').style.display = '';
     document.getElementById('retry-only-btn').style.display = 'none';
   } else {
-    // 不像：只顯示「再練習一次」大按鈕，隱藏其他所有操作
+    // 不像：不改變狀態，只顯示「再練習一次」
     sfxWrong();
-    charStatus[char] = 'practiced';
     document.getElementById('after-eval').style.display = 'none';
     document.getElementById('retry-only-btn').style.display = '';
   }
@@ -2811,11 +2808,11 @@ function recordAndNext(char, mistakes, skipped) {
     examResults[char] = { round:examRound, mistakes:mistakes, skipped:skipped, passed:passed };
   }
 
-  // 更新生字狀態
+  // 更新生字狀態：只有綜合測驗通過才標 mastered（通過測驗）
   if (passed) {
-    charStatus[char] = mistakes === 0 ? 'mastered' : 'practiced';
+    charStatus[char] = 'mastered';  // 綜合測驗通過 → 通過測驗
   } else {
-    charStatus[char] = 'practiced';
+    // 未通過不改變原本狀態（可能已是 practiced 或 new）
     examFailed.push(char); // 加入下一輪待考
   }
   try { renderMenu(); } catch(e) { console.warn('renderMenu error:', e); }
