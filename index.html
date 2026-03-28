@@ -2765,24 +2765,42 @@ function playExamVoice() {
 }
 
 var examQStrokeMistakes = 0;  // 本題累計錯誤次數
+var examQHintMode = false;    // 是否已進入提示描寫模式
 
 function startExamQQuiz(char) {
   examQStrokeMistakes = 0;
+  examQHintMode = false;
   examQWriter.quiz({
-    // 每一筆錯 3 次：顯示該筆 highlight 動畫提示
-    showHintAfterMisses: 3,
-    // 每一筆錯 6 次：自動完成這一筆並顯示輪廓，讓學生描完剩餘筆畫
-    markStrokeCorrectAfterMisses: 6,
+    showHintAfterMisses: 3,   // 每筆錯 3 次顯示 highlight 提示
     onMistake: function(data) {
       examQMistakes++;
       examQStrokeMistakes++;
       flashBox('exam-quiz-target', 'red');
       sfxWrong();
 
-      // 總錯誤超過 5 次：顯示整字輪廓提示
-      if (examQMistakes === 6) {
+      // 總錯誤超過 5 次且尚未進入提示模式：切換為輪廓描寫模式
+      if (examQMistakes > 5 && !examQHintMode) {
+        examQHintMode = true;
         showToast('💡 看著輪廓把字描完吧！');
-        try { examQWriter.showOutline(); } catch(e) {}
+        try { examQWriter.cancelQuiz(); } catch(e) {}
+        // 重新以輪廓模式開始 quiz，讓學生描完整個字
+        examQWriter.quiz({
+          showOutline: true,         // 顯示輪廓讓學生描
+          showHintAfterMisses: 1,    // 描錯 1 次就給提示
+          markStrokeCorrectAfterMisses: 3,  // 描錯 3 次自動過這筆
+          leniency: 1.5,             // 更寬鬆的判斷
+          onMistake: function() {
+            sfxWrong();
+          },
+          onCorrectStroke: function() {
+            sfxCorrect();
+            flashBox('exam-quiz-target', 'green');
+          },
+          onComplete: function(summary) {
+            // 描完後記錄為不通過（已超過錯誤上限）
+            recordAndNext(char, 99, false);
+          }
+        });
       }
     },
     onCorrectStroke: function(data) {
@@ -2791,8 +2809,8 @@ function startExamQQuiz(char) {
       sfxCorrect();
     },
     onComplete: function(summary) {
+      if (examQHintMode) return; // 已由提示模式處理
       examQMistakes = summary.totalMistakes;
-      // 通過標準：總錯誤 ≤ 5 筆
       recordAndNext(char, examQMistakes, false);
     }
   });
