@@ -1206,8 +1206,7 @@ body {
         <span id="home-avatar-display">🐣</span>
       </button>
       <div class="student-badge" id="student-badge" onclick="confirmLogout()">
-        <span id="student-badge-name">學生</span>
-        <span style="font-size:.75rem;opacity:.7">登出</span>
+        <span style="font-size:.85rem;font-weight:800">登出</span>
       </div>
     </div>
   </div>
@@ -1897,7 +1896,7 @@ var THEMES = [
   { id:'red',    name:'玫瑰',   bg:'#fff0f0', blue:'#c0392b', blueDk:'#a93226', blueLt:'#fadbd8', icon:'🔴' },
   { id:'teal',   name:'青空',   bg:'#f0fafa', blue:'#16a085', blueDk:'#0e6655', blueLt:'#d1f2eb', icon:'🩵' },
   { id:'pink',   name:'粉紅',   bg:'#fff0f8', blue:'#d63384', blueDk:'#a0255e', blueLt:'#fce4ec', icon:'🩷' },
-  { id:'dark',   name:'深夜',   bg:'#1a1f2e', blue:'#5b9bd5', blueDk:'#4a8bc4', blueLt:'#2a3550', icon:'🌙' },
+  { id:'dark',   name:'深夜',   bg:'#1a1f2e', blue:'#7ab3e0', blueDk:'#5b9bd5', blueLt:'#2a3550', icon:'🌙' },
 ];
 
 var currentTheme = localStorage.getItem('theme') || 'blue';
@@ -1911,11 +1910,17 @@ function applyTheme(themeId) {
   r.setProperty('--blue-lt', t.blueLt);
   // 深色模式文字調整
   if (themeId === 'dark') {
-    r.setProperty('--text',  '#e2e8f0');
-    r.setProperty('--muted', '#94a3b8');
+    r.setProperty('--text',    '#f1f5f9');
+    r.setProperty('--muted',   '#94a3b8');
+    r.setProperty('--border',  '#334155');
+    r.setProperty('--white',   '#1e2d3d');
+    r.setProperty('--shadow',  '0 6px 28px rgba(0,0,0,.4)');
   } else {
-    r.setProperty('--text',  '#1e2d3d');
-    r.setProperty('--muted', '#7a99b5');
+    r.setProperty('--text',    '#1e2d3d');
+    r.setProperty('--muted',   '#7a99b5');
+    r.setProperty('--border',  '#d4e8f8');
+    r.setProperty('--white',   '#ffffff');
+    r.setProperty('--shadow',  '0 6px 28px rgba(44,100,160,.13)');
   }
   currentTheme = themeId;
   localStorage.setItem('theme', themeId);
