@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-<!-- v2.1 -->
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
@@ -1707,13 +1706,9 @@ function onLoginSuccess(student, data) {
   // 還原學生的 charStatus
   if (data.charStatus) charStatus = data.charStatus;
 
-  // 更新頂部學生名稱
+  // 登出按鈕顯示
   var badge = document.getElementById('student-badge');
-  var bname = document.getElementById('student-badge-name');
-  if (badge && bname) {
-    bname.textContent = student.name;
-    badge.classList.add('show');
-  }
+  if (badge) badge.classList.add('show');
 
   // 從 Firebase 載入教師設定的生字
   loadLessonFromFirebase(function(lessonChars) {
@@ -1911,16 +1906,10 @@ function applyTheme(themeId) {
   r.setProperty('--blue-lt', t.blueLt);
   // 深色模式文字調整
   if (themeId === 'dark') {
-    r.setProperty('--text',    '#f1f5f9');
-    r.setProperty('--muted',   '#94a3b8');
     r.setProperty('--border',  '#334155');
-    r.setProperty('--white',   '#1e2d3d');
     r.setProperty('--shadow',  '0 6px 28px rgba(0,0,0,.4)');
   } else {
-    r.setProperty('--text',    '#1e2d3d');
-    r.setProperty('--muted',   '#7a99b5');
     r.setProperty('--border',  '#d4e8f8');
-    r.setProperty('--white',   '#ffffff');
     r.setProperty('--shadow',  '0 6px 28px rgba(44,100,160,.13)');
   }
   currentTheme = themeId;
