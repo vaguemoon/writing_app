@@ -2764,7 +2764,8 @@ function playExamVoice() {
   }, 1200);
 }
 
-var examQStrokeMistakes = 0;  // 目前這一筆的錯誤次數
+var examQStrokeMistakes = 0;  // 本題累計錯誤次數
+var examQTotalLimit = 5;      // 錯誤上限
 
 function startExamQQuiz(char) {
   examQStrokeMistakes = 0;
@@ -2775,17 +2776,26 @@ function startExamQQuiz(char) {
       flashBox('exam-quiz-target','red');
       sfxWrong();
 
-      // 錯 5 次：顯示輪廓提示讓學生完成
-      if (examQStrokeMistakes >= 5) {
-        examQStrokeMistakes = 0;
-        showToast('💡 太難了！看著提示寫完吧！');
-        // 顯示輪廓
-        try { examQWriter.showOutline(); } catch(e){}
+      // 累計錯 5 次：取消測驗，顯示正確字形讓學生寫完，列為不通過
+      if (examQStrokeMistakes >= examQTotalLimit) {
+        try { examQWriter.cancelQuiz(); } catch(e){}
+        showToast('💡 看著正確的字寫一遍吧！');
+        sfxWrong();
+
+        // 顯示完整字形讓學生觀看
+        try {
+          examQWriter.showCharacter();
+          examQWriter.showOutline();
+        } catch(e){}
+
+        // 強制列為不通過，進下一題
+        setTimeout(function(){
+          recordAndNext(char, examQTotalLimit, false);
+        }, 2000);
       }
     },
     onCorrectStroke:function(data){
       examQStrokes++;
-      examQStrokeMistakes = 0;  // 寫對了，重置本筆錯誤計數
       flashBox('exam-quiz-target','green');
       sfxCorrect();
     },
