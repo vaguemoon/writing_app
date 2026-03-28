@@ -2677,6 +2677,7 @@ var examMaxRounds = 3;    // 最多幾輪
 var examQWriter   = null;
 var examQMistakes = 0;
 var examQStrokes  = 0;
+var examQSz       = 340;  // 測驗格子尺寸（供 hint mode 使用）
 var examFailed    = [];   // 本輪答錯或跳過的字，進下一輪
 
 function startFullExam() {
@@ -2735,6 +2736,7 @@ function showExamQuestion() {
     420
   ));
 
+  examQSz = sz;  // 儲存格子尺寸供 hint mode 使用
   examQWriter = HanziWriter.create('exam-quiz-target', char, {
     width:sz, height:sz,
     padding:Math.round(sz*0.08),
@@ -2778,34 +2780,47 @@ function startExamQQuiz(char) {
       flashBox('exam-quiz-target', 'red');
       sfxWrong();
 
-      // 總錯誤超過 5 次且尚未進入提示模式：切換為輪廓描寫模式
+      // 總錯誤超過 5 次且尚未進入提示模式：建立新的含輪廓 writer 讓學生描
       if (examQMistakes > 5 && !examQHintMode) {
         examQHintMode = true;
         showToast('💡 看著輪廓把字描完吧！');
         try { examQWriter.cancelQuiz(); } catch(e) {}
 
-        // 更新輪廓顏色為可見（原本是透明的）
-        try { examQWriter.updateColor('outlineColor', '#c8dff5'); } catch(e) {}
-        try { examQWriter.updateColor('characterColor', '#c8dff5'); } catch(e) {}
-        try { examQWriter.showOutline(); } catch(e) {}
-        try { examQWriter.showCharacter(); } catch(e) {}
+        // 清空格子，建立全新的 writer（有輪廓）取代舊的
+        var target = document.getElementById('exam-quiz-target');
+        if (target) {
+          // 清空 SVG 內容
+          while (target.firstChild) target.removeChild(target.firstChild);
+        }
 
-        setTimeout(function() {
-          examQWriter.quiz({
-            showOutline: true,
-            showHintAfterMisses: 1,
-            markStrokeCorrectAfterMisses: 3,
-            leniency: 1.5,
-            onMistake: function() { sfxWrong(); },
-            onCorrectStroke: function() {
-              sfxCorrect();
-              flashBox('exam-quiz-target', 'green');
-            },
-            onComplete: function() {
-              recordAndNext(char, 99, false);
-            }
-          });
-        }, 300);
+        // 重建含輪廓的 writer
+        examQWriter = HanziWriter.create('exam-quiz-target', char, {
+          width: examQSz, height: examQSz,
+          padding: Math.round(examQSz * 0.08),
+          strokeColor: '#2d6fa8',
+          outlineColor: '#c8dff5',    // 可見的淡藍輪廓
+          drawingColor: '#2d6fa8',
+          drawingWidth: Math.max(4, Math.round(examQSz * 0.013)),
+          highlightColor: '#ffd54f',
+          showCharacter: true,         // 顯示完整字形
+          showOutline: true,           // 顯示輪廓
+          leniency: 1.5,
+          onLoadCharDataSuccess: function() {
+            examQWriter.quiz({
+              showHintAfterMisses: 1,
+              markStrokeCorrectAfterMisses: 3,
+              leniency: 1.5,
+              onMistake: function() { sfxWrong(); },
+              onCorrectStroke: function() {
+                sfxCorrect();
+                flashBox('exam-quiz-target', 'green');
+              },
+              onComplete: function() {
+                recordAndNext(char, 99, false);
+              }
+            });
+          }
+        });
       }
     },
     onCorrectStroke: function(data) {
