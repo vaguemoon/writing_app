@@ -2783,24 +2783,29 @@ function startExamQQuiz(char) {
         examQHintMode = true;
         showToast('💡 看著輪廓把字描完吧！');
         try { examQWriter.cancelQuiz(); } catch(e) {}
-        // 重新以輪廓模式開始 quiz，讓學生描完整個字
-        examQWriter.quiz({
-          showOutline: true,         // 顯示輪廓讓學生描
-          showHintAfterMisses: 1,    // 描錯 1 次就給提示
-          markStrokeCorrectAfterMisses: 3,  // 描錯 3 次自動過這筆
-          leniency: 1.5,             // 更寬鬆的判斷
-          onMistake: function() {
-            sfxWrong();
-          },
-          onCorrectStroke: function() {
-            sfxCorrect();
-            flashBox('exam-quiz-target', 'green');
-          },
-          onComplete: function(summary) {
-            // 描完後記錄為不通過（已超過錯誤上限）
-            recordAndNext(char, 99, false);
-          }
-        });
+
+        // 更新輪廓顏色為可見（原本是透明的）
+        try { examQWriter.updateColor('outlineColor', '#c8dff5'); } catch(e) {}
+        try { examQWriter.updateColor('characterColor', '#c8dff5'); } catch(e) {}
+        try { examQWriter.showOutline(); } catch(e) {}
+        try { examQWriter.showCharacter(); } catch(e) {}
+
+        setTimeout(function() {
+          examQWriter.quiz({
+            showOutline: true,
+            showHintAfterMisses: 1,
+            markStrokeCorrectAfterMisses: 3,
+            leniency: 1.5,
+            onMistake: function() { sfxWrong(); },
+            onCorrectStroke: function() {
+              sfxCorrect();
+              flashBox('exam-quiz-target', 'green');
+            },
+            onComplete: function() {
+              recordAndNext(char, 99, false);
+            }
+          });
+        }, 300);
       }
     },
     onCorrectStroke: function(data) {
