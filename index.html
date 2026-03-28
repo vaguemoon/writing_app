@@ -2393,7 +2393,7 @@ function showExamResult(char, mistakes, total) {
   mbar.innerHTML = mistakes === 0
     ? '✨ 一筆都沒錯！'
     : '錯了 <strong style="font-size:1.2rem;color:var(--red)">'+mistakes+'</strong> 筆'
-      + (passed ? '　（錯 2 筆以內算通過）' : '　（需要錯 2 筆以內才通過）');
+      + (passed ? '　（錯 5 筆以內算通過）' : '　（需要錯 5 筆以內才通過）');
 
   renderMenu();
   document.getElementById('exam-result-card').classList.add('show');
@@ -2765,42 +2765,34 @@ function playExamVoice() {
 }
 
 var examQStrokeMistakes = 0;  // 本題累計錯誤次數
-var examQTotalLimit = 5;      // 錯誤上限
 
 function startExamQQuiz(char) {
   examQStrokeMistakes = 0;
   examQWriter.quiz({
-    onMistake:function(data){
+    // 每一筆錯 3 次：顯示該筆 highlight 動畫提示
+    showHintAfterMisses: 3,
+    // 每一筆錯 6 次：自動完成這一筆並顯示輪廓，讓學生描完剩餘筆畫
+    markStrokeCorrectAfterMisses: 6,
+    onMistake: function(data) {
       examQMistakes++;
       examQStrokeMistakes++;
-      flashBox('exam-quiz-target','red');
+      flashBox('exam-quiz-target', 'red');
       sfxWrong();
 
-      // 累計錯 5 次：取消測驗，顯示正確字形讓學生寫完，列為不通過
-      if (examQStrokeMistakes >= examQTotalLimit) {
-        try { examQWriter.cancelQuiz(); } catch(e){}
-        showToast('💡 看著正確的字寫一遍吧！');
-        sfxWrong();
-
-        // 顯示完整字形讓學生觀看
-        try {
-          examQWriter.showCharacter();
-          examQWriter.showOutline();
-        } catch(e){}
-
-        // 強制列為不通過，進下一題
-        setTimeout(function(){
-          recordAndNext(char, examQTotalLimit, false);
-        }, 2000);
+      // 總錯誤超過 5 次：顯示整字輪廓提示
+      if (examQMistakes === 6) {
+        showToast('💡 看著輪廓把字描完吧！');
+        try { examQWriter.showOutline(); } catch(e) {}
       }
     },
-    onCorrectStroke:function(data){
+    onCorrectStroke: function(data) {
       examQStrokes++;
-      flashBox('exam-quiz-target','green');
+      flashBox('exam-quiz-target', 'green');
       sfxCorrect();
     },
-    onComplete:function(summary){
+    onComplete: function(summary) {
       examQMistakes = summary.totalMistakes;
+      // 通過標準：總錯誤 ≤ 5 筆
       recordAndNext(char, examQMistakes, false);
     }
   });
@@ -2817,7 +2809,7 @@ function skipExamChar() {
 
 
 function recordAndNext(char, mistakes, skipped) {
-  var passed = !skipped && mistakes <= 2;
+  var passed = !skipped && mistakes <= 5;  // 總錯誤 ≤ 5 筆算通過
 
   // 記錄這個字的成績（保留最佳成績：若之前已過，不降級）
   var prev = examResults[char];
