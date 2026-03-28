@@ -1166,6 +1166,31 @@ body {
       <div class="avatar-grid" id="avatar-grid"></div>
     </div>
 
+    <!-- 音效開關 -->
+    <div class="profile-card">
+      <div class="profile-card-title">🔊 音效設定</div>
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <div style="font-size:.92rem;font-weight:800;color:var(--text)">練習音效</div>
+          <div style="font-size:.75rem;color:var(--muted);font-weight:600;margin-top:2px">關閉後練習時不會有聲音</div>
+        </div>
+        <button id="sound-toggle-btn" onclick="toggleSound()"
+          style="width:56px;height:30px;border-radius:20px;border:none;cursor:pointer;
+                 position:relative;transition:background .25s;font-size:0">
+          <div id="sound-toggle-knob"
+            style="position:absolute;top:3px;width:24px;height:24px;border-radius:50%;
+                   background:white;transition:left .25s;box-shadow:0 2px 4px rgba(0,0,0,.2)">
+          </div>
+        </button>
+      </div>
+    </div>
+
+    <!-- 主題色系 -->
+    <div class="profile-card">
+      <div class="profile-card-title">🎨 主題色系</div>
+      <div id="theme-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px"></div>
+    </div>
+
     <button class="btn-profile-save" onclick="saveProfile()">💾 儲存資料</button>
     <div style="height:32px"></div>
   </div>
@@ -1179,7 +1204,6 @@ body {
     <div style="display:flex;align-items:center;gap:8px">
       <button class="btn-profile-entry" id="btn-profile-entry" onclick="goTo('profile')">
         <span id="home-avatar-display">🐣</span>
-        <span id="home-nickname-display">個人資料</span>
       </button>
       <div class="student-badge" id="student-badge" onclick="confirmLogout()">
         <span id="student-badge-name">學生</span>
@@ -1802,6 +1826,10 @@ function updateProfileScreen() {
 
   // 更新首頁頂部顯示
   updateHomeAvatar();
+
+  // 渲染音效開關和主題選擇
+  applySound();
+  renderThemeGrid();
 }
 
 function updateHomeAvatar() {
@@ -1811,6 +1839,105 @@ function updateHomeAvatar() {
   var nnEl = document.getElementById('home-nickname-display');
   if (avEl) avEl.textContent = av;
   if (nnEl) nnEl.textContent = nn;
+}
+
+// ══ 音效開關 ══
+var soundEnabled = localStorage.getItem('soundEnabled') !== 'false';
+
+function applySound() {
+  var btn  = document.getElementById('sound-toggle-btn');
+  var knob = document.getElementById('sound-toggle-knob');
+  if (!btn || !knob) return;
+  btn.style.background  = soundEnabled ? 'var(--green)' : '#cbd5e1';
+  knob.style.left       = soundEnabled ? '29px' : '3px';
+}
+
+function toggleSound() {
+  soundEnabled = !soundEnabled;
+  localStorage.setItem('soundEnabled', soundEnabled);
+  applySound();
+  if (soundEnabled) sfxCorrect();
+}
+
+// 覆寫所有音效函數，讓音效開關生效
+var _origSfxTap       = null;
+var _origSfxCorrect   = null;
+var _origSfxWrong     = null;
+var _origSfxPass      = null;
+var _origSfxCelebrate = null;
+var _origSfxSwipe     = null;
+
+function initSoundWrapper() {
+  // 等音效函數定義後再包裝
+  setTimeout(function() {
+    if (typeof sfxTap === 'function' && !_origSfxTap) {
+      _origSfxTap       = sfxTap;
+      _origSfxCorrect   = sfxCorrect;
+      _origSfxWrong     = sfxWrong;
+      _origSfxPass      = sfxPass;
+      _origSfxCelebrate = sfxCelebrate;
+      _origSfxSwipe     = sfxSwipe;
+
+      sfxTap       = function(){ if(soundEnabled) _origSfxTap(); };
+      sfxCorrect   = function(){ if(soundEnabled) _origSfxCorrect(); };
+      sfxWrong     = function(){ if(soundEnabled) _origSfxWrong(); };
+      sfxPass      = function(){ if(soundEnabled) _origSfxPass(); };
+      sfxCelebrate = function(){ if(soundEnabled) _origSfxCelebrate(); };
+      sfxSwipe     = function(){ if(soundEnabled) _origSfxSwipe(); };
+    }
+  }, 1000);
+}
+
+// ══ 主題色系 ══
+var THEMES = [
+  { id:'blue',   name:'藍天',   bg:'#eef5fc', blue:'#4a90d9', blueDk:'#2d6fa8', blueLt:'#e8f4fd', icon:'🔵' },
+  { id:'green',  name:'森林',   bg:'#edfbf4', blue:'#27ae60', blueDk:'#1e8449', blueLt:'#d5f5e3', icon:'🟢' },
+  { id:'purple', name:'薰衣草', bg:'#f3f0fc', blue:'#8e44ad', blueDk:'#6c3483', blueLt:'#e8daef', icon:'🟣' },
+  { id:'orange', name:'夕陽',   bg:'#fff8f0', blue:'#e67e22', blueDk:'#ca6f1e', blueLt:'#fdebd0', icon:'🟠' },
+  { id:'red',    name:'玫瑰',   bg:'#fff0f0', blue:'#c0392b', blueDk:'#a93226', blueLt:'#fadbd8', icon:'🔴' },
+  { id:'teal',   name:'青空',   bg:'#f0fafa', blue:'#16a085', blueDk:'#0e6655', blueLt:'#d1f2eb', icon:'🩵' },
+  { id:'pink',   name:'粉紅',   bg:'#fff0f8', blue:'#d63384', blueDk:'#a0255e', blueLt:'#fce4ec', icon:'🩷' },
+  { id:'dark',   name:'深夜',   bg:'#1a1f2e', blue:'#5b9bd5', blueDk:'#4a8bc4', blueLt:'#2a3550', icon:'🌙' },
+];
+
+var currentTheme = localStorage.getItem('theme') || 'blue';
+
+function applyTheme(themeId) {
+  var t = THEMES.find(function(th){ return th.id === themeId; }) || THEMES[0];
+  var r = document.documentElement.style;
+  r.setProperty('--bg',      t.bg);
+  r.setProperty('--blue',    t.blue);
+  r.setProperty('--blue-dk', t.blueDk);
+  r.setProperty('--blue-lt', t.blueLt);
+  // 深色模式文字調整
+  if (themeId === 'dark') {
+    r.setProperty('--text',  '#e2e8f0');
+    r.setProperty('--muted', '#94a3b8');
+  } else {
+    r.setProperty('--text',  '#1e2d3d');
+    r.setProperty('--muted', '#7a99b5');
+  }
+  currentTheme = themeId;
+  localStorage.setItem('theme', themeId);
+  renderThemeGrid();
+}
+
+function renderThemeGrid() {
+  var grid = document.getElementById('theme-grid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  THEMES.forEach(function(t) {
+    var btn = document.createElement('button');
+    btn.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:4px;'
+      +'padding:10px 4px;border-radius:12px;border:2.5px solid '
+      +(t.id === currentTheme ? 'var(--blue)' : 'var(--border)')+';'
+      +'background:'+(t.id === currentTheme ? 'var(--blue-lt)' : 'white')
+      +';cursor:pointer;font-family:inherit;transition:all .15s;';
+    btn.innerHTML = '<span style="font-size:1.5rem">'+t.icon+'</span>'
+      +'<span style="font-size:.7rem;font-weight:800;color:var(--text)">'+t.name+'</span>';
+    btn.addEventListener('click', function(){ applyTheme(t.id); });
+    grid.appendChild(btn);
+  });
 }
 
 function saveProfile() {
@@ -3387,6 +3514,9 @@ function waitHW(cb) {
 window.addEventListener('load', function(){
   initFirebase();        // Firebase 初始化（會自動輪詢直到就緒）
   waitHW(function(){});  // HanziWriter 初始化
+  applyTheme(currentTheme); // 套用上次的主題
+  applySound();             // 套用音效開關狀態
+  initSoundWrapper();       // 包裝音效函數
 });
 
 // 也在 DOMContentLoaded 時嘗試初始化（雙保險）
